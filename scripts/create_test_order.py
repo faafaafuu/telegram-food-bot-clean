@@ -16,29 +16,32 @@ async def main():
         await session.commit()
 
         # Возьмем первые 2 товара из каталога
-        products_result = await session.execute(select(Product).limit(2))
-        products = products_result.scalars().all()
-        if not products:
+        # Запросим только нужные колонки, чтобы избежать несоответствий схемы
+        raw = await session.execute("SELECT id, name, price FROM products LIMIT 2")
+        rows = raw.fetchall()
+        if not rows:
             print("Нет товаров в базе — добавьте товары перед тестом.")
             return
 
         # Добавим в корзину
-        for i, p in enumerate(products, start=1):
-            session.add(Cart(user_id=TEST_USER_ID, product_id=p.id, qty=i))
+        for i, row in enumerate(rows, start=1):
+            product_id, name, price = row
+            session.add(Cart(user_id=TEST_USER_ID, product_id=product_id, qty=i))
         await session.commit()
 
         # Сформируем items_json и total_price
         items_json_list = []
         total_price = 0.0
-        for i, p in enumerate(products, start=1):
+        for i, row in enumerate(rows, start=1):
+            product_id, name, price = row
             qty = i
-            total = p.price * qty
+            total = float(price) * qty
             total_price += total
             items_json_list.append({
-                "product_id": p.id,
-                "name": p.name,
+                "product_id": int(product_id),
+                "name": name,
                 "qty": qty,
-                "price": p.price,
+                "price": float(price),
                 "total": total
             })
 
