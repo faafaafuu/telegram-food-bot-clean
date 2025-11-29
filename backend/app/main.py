@@ -91,6 +91,25 @@ async def export_products():
 async def add_to_cart(user_id: int, item: schemas.AddCartItem):
     return await crud.add_to_cart(user_id, item.product_id, item.qty)
 
+@app.post("/api/cart")
+async def sync_cart(request: Request):
+    """Синхронизация корзины из WebApp"""
+    data = await request.json()
+    user_id = data.get('user_id', 0)
+    items = data.get('items', [])
+    
+    if not user_id:
+        raise HTTPException(400, "user_id required")
+    
+    # Очищаем старую корзину
+    await crud.clear_cart(user_id)
+    
+    # Добавляем новые позиции
+    for item in items:
+        await crud.add_to_cart(user_id, item['product_id'], item['qty'])
+    
+    return {"ok": True}
+
 
 @app.get("/api/cart/{user_id}")
 async def get_cart(user_id: int):
