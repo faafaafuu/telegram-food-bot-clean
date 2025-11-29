@@ -1,0 +1,36 @@
+import asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.fsm.storage.memory import MemoryStorage
+import os
+
+# Read config from environment for portability in containers
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+# WEBAPP_URL: prefer WEBHOOK_URL or BASE_URL; include path to webapp
+WEBAPP_URL = os.getenv('WEBHOOK_URL') or os.getenv('BASE_URL') or 'http://localhost:8000'
+
+bot = Bot(token=BOT_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
+
+@dp.message()
+async def cmd_start(message):
+    # Telegram requires HTTPS for Web App buttons; fall back to plain URL when not HTTPS
+    if WEBAPP_URL.startswith('https'):
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Открыть меню', web_app=WebAppInfo(url=WEBAPP_URL + '/webapp'))]])
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Открыть меню (открыть в браузере)', url=WEBAPP_URL + '/webapp')]])
+    try:
+        await message.answer('Открыть меню:', reply_markup=kb)
+    except Exception:
+        # avoid crashing handler on Telegram errors
+        await message.answer(f'Открыть меню: {WEBAPP_URL}/webapp')
+
+async def run():
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
+
+if __name__=='__main__':
+    asyncio.run(run())

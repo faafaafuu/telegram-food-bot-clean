@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mock Payment</title>
+  </head>
+  <body>
+    <h2>Mock Payment</h2>
+    <p>Click to simulate payment.</p>
+    <button id="pay">Оплатить</button>
+    <script>
+      document.getElementById('pay').addEventListener('click', async ()=>{
+        const orderId = new URLSearchParams(location.search).get('order_id') || 0;
+        await fetch('/webhook/payment', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id: Number(orderId), status:'paid'})});
+        alert('Payment simulated');
+      })
+    </script>
+  </body>
+</html>

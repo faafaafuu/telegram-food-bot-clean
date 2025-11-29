@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin Panel</title>
+  <style>
+    body{font-family:Arial;padding:12px}
+    input,button,select,textarea{padding:6px;margin:4px}
+    table{width:100%;border-collapse:collapse}
+    td,th{border:1px solid #ddd;padding:8px}
+    .section{margin-bottom:18px}
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div class="section">
+    <h2>Категории</h2>
+    <div>
+      <input id="cat_title" placeholder="Название" />
+      <input id="cat_order" type="number" value="0" style="width:80px"/>
+      <button id="add_cat">Добавить</button>
+    </div>
+    <table id="cats_table"><thead><tr><th>ID</th><th>Title</th><th>Order</th><th>Actions</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section">
+    <h2>Товары</h2>
+    <div>
+      <input id="prod_name" placeholder="Название" />
+      <select id="prod_cat"></select>
+      <input id="prod_price" type="number" placeholder="Цена" />
+      <button id="add_prod">Добавить товар</button>
+    </div>
+    <table id="prods_table"><thead><tr><th>ID</th><th>Название</th><th>Категория</th><th>Цена</th><th>Actions</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div style="margin-top:18px">
+    <a href="/api/admin/products/export">Export CSV</a>
+  </div>
+
+  <script>
+  const API = location.origin
+
+  async function fetchJson(url, opts){
+    const res = await fetch(url, opts)
+    if(!res.ok) throw new Error('Request failed: ' + res.status)
+    return res.json()
+  }
+
+  async function loadCats(){
+    const res = await fetch(API + '/api/categories')
+    const cats = await res.json()
+    const tbody = document.querySelector('#cats_table tbody'); tbody.innerHTML=''
+    const sel = document.getElementById('prod_cat'); sel.innerHTML=''
+    cats.forEach(c=>{
+      const tr=document.createElement('tr')
+      tr.innerHTML=`<td>${c.id}</td>
+        <td><input class="cat_title_input" data-id="${c.id}" value="${c.title}"/></td>
+        <td><input class="cat_order_input" data-id="${c.id}" type="number" value="${c.sort_order||0}" style="width:80px"/></td>
+        <td>
+          <button data-id="${c.id}" class="save_cat">Save</button>
+          <button data-id="${c.id}" class="del_cat">Del</button>
+        </td>`
+      tbody.appendChild(tr)
+      const opt = document.createElement('option'); opt.value=c.id; opt.text=c.title; sel.appendChild(opt)
+    })
+  }
+
+  let CATS_MAP = {}
+  async function loadProds(){
+    const res = await fetch(API + '/api/products')
+    const prods = await res.json()
+    const tbody = document.querySelector('#prods_table tbody'); tbody.innerHTML=''
+    prods.forEach(p=>{
+      const tr=document.createElement('tr')
+      tr.innerHTML=`<td>${p.id}</td>
+        <td><input class="prod_name_input" data-id="${p.id}" value="${p.name}"/></td>
+        <td><select class="prod_cat_select" data-id="${p.id}"></select></td>
+        <td><input class="prod_price_input" data-id="${p.id}" type="number" value="${p.price}" style="width:120px"/></td>
+        <td>
+          <button data-id="${p.id}" class="save_prod">Save</button>
+          <button data-id="${p.id}" class="del_prod">Del</button>
+        </td>`
+      tbody.appendChild(tr)
+    })
+    // populate per-row selects
+    document.querySelectorAll('.prod_cat_select').forEach(sel=>{
+      sel.innerHTML=''
+      Object.values(CATS_MAP).forEach(c=>{
+        const o = document.createElement('option'); o.value=c.id; o.text=c.title; sel.appendChild(o)
+      })
+      const prod = prods.find(p=>String(p.id)===sel.dataset.id)
+      if(prod) sel.value = prod.category_id
+    })
+  }
+
+  // add
+  document.getElementById('add_cat').addEventListener('click', async ()=>{
+    const title = document.getElementById('cat_title').value
+    const order = parseInt(document.getElementById('cat_order').value||0)
+    await fetchJson(API + '/api/admin/category', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, sort_order: order})})
+    await refreshAll()
+  })
+
+  document.getElementById('add_prod').addEventListener('click', async ()=>{
+    const name = document.getElementById('prod_name').value
+    const category_id = parseInt(document.getElementById('prod_cat').value)
+    const price = parseFloat(document.getElementById('prod_price').value||0)
+    await fetchJson(API + '/api/admin/product', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, category_id, price})})
+    await refreshAll()
+  })
+
+  // actions (save/delete)
+  document.addEventListener('click', async (e)=>{
+    try{
+      if(e.target.classList.contains('del_cat')){
+        const id = e.target.dataset.id
+        await fetch(API + `/api/admin/category/${id}`, {method:'DELETE'})
+        await refreshAll()
+      }
+      if(e.target.classList.contains('del_prod')){
+        const id = e.target.dataset.id
+        await fetch(API + `/api/admin/product/${id}`, {method:'DELETE'})
+        await refreshAll()
+      }
+      if(e.target.classList.contains('save_cat')){
+        const id = e.target.dataset.id
+        const title = document.querySelector(`.cat_title_input[data-id="${id}"]`).value
+        const sort_order = parseInt(document.querySelector(`.cat_order_input[data-id="${id}"]`).value||0)
+        await fetch(API + `/api/admin/category/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, sort_order})})
+        await refreshAll()
+      }
+      if(e.target.classList.contains('save_prod')){
+        const id = e.target.dataset.id
+        const name = document.querySelector(`.prod_name_input[data-id="${id}"]`).value
+        const price = parseFloat(document.querySelector(`.prod_price_input[data-id="${id}"]`).value||0)
+        const category_id = parseInt(document.querySelector(`.prod_cat_select[data-id="${id}"]`).value)
+        await fetch(API + `/api/admin/product/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, price, category_id})})
+        await refreshAll()
+      }
+    }catch(err){
+      alert('Ошибка: '+err.message)
+    }
+  })
+
+  async function refreshAll(){
+    const res = await fetch(API + '/api/categories')
+    const cats = await res.json()
+    CATS_MAP = {}
+    cats.forEach(c=>CATS_MAP[c.id]=c)
+    await loadCats()
+    await loadProds()
+  }
+
+  // init
+  refreshAll();
+  </script>
+</body>
+</html>

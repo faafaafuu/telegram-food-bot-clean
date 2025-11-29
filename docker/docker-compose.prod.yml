@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: food
+      POSTGRES_PASSWORD: foodpass
+      POSTGRES_DB: fooddb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-food} -d $${POSTGRES_DB:-fooddb} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - webnet
+
+  web:
+    build: ../
+    # small startup sleep to avoid racing DNS/DB on noisy hosts
+    command: sh -c "sleep 5 && uvicorn backend.app.main:app --host 0.0.0.0 --port 11204 --proxy-headers"
+    env_file:
+      - ../.env
+    # env vars are loaded from ../.env into the container; avoid using ${} substitution here
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+    networks:
+      - webnet
+
+  bot:
+    build: ../
+    command: python3 bot/telegram_bot.py
+    env_file:
+      - ../.env
+    # bot reads config from environment variables provided by ../.env
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - web
+    networks:
+      - webnet
+
+  nginx:
+    image: nginx:stable
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/letsencrypt/live:ro
+    ports:
+      - "8020:80"
+      - "8243:443"
+    restart: unless-stopped
+    depends_on:
+      - web
+    networks:
+      - webnet
+
+volumes:
+  db-data:
+
+networks:
+  webnet:
+    driver: bridge

@@ -1,0 +1,7 @@
+body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0}
+#app{padding:12px}
+.tabs{display:flex;gap:8px;overflow:auto;padding:8px 0}
+.card{border:1px solid #eee;padding:8px;margin:8px;border-radius:6px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+#cartBtnWrap{position:fixed;right:12px;bottom:12px}
+button{padding:8px 12px;border-radius:6px}
