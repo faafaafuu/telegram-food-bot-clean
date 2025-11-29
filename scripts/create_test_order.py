@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 from bot.services.db import AsyncSessionLocal, Product, Cart, Order
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 
 
 TEST_USER_ID = 123456789
@@ -17,7 +17,7 @@ async def main():
 
         # Возьмем первые 2 товара из каталога
         # Запросим только нужные колонки, чтобы избежать несоответствий схемы
-        raw = await session.execute("SELECT id, name, price FROM products LIMIT 2")
+        raw = await session.execute(text("SELECT id, name, price FROM products LIMIT 2"))
         rows = raw.fetchall()
         if not rows:
             print("Нет товаров в базе — добавьте товары перед тестом.")
