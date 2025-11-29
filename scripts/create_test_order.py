@@ -50,7 +50,6 @@ async def main():
             items_json=json.dumps(items_json_list, ensure_ascii=False),
             total_price=total_price,
             address="Тестовый адрес, ул. Пример 1",
-            name="Тест Пользователь",
             phone="+7 900 000-00-00",
             payment_method="cash",
             status="new",
