@@ -49,7 +49,6 @@ class Order(Base):
     items_json = Column(Text)
     total_price = Column(Float)
     address = Column(String)
-    name = Column(String)
     phone = Column(String)
     payment_method = Column(String)
     status = Column(String, default='new')

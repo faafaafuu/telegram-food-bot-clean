@@ -13,7 +13,6 @@ router = Router()
 
 class OrderStates(StatesGroup):
     """Состояния оформления заказа"""
-    entering_name = State()
     entering_address = State()
     entering_phone = State()
     choosing_payment = State()
@@ -35,22 +34,13 @@ async def start_order(callback: CallbackQuery, state: FSMContext):
             return
     
     await callback.message.edit_text(
-        "👤 <b>Ваше имя</b>\n\n"
-        "Напишите, пожалуйста, как к вам обращаться."
-    )
-    await state.set_state(OrderStates.entering_name)
-    await callback.answer()
-
-@router.message(StateFilter(OrderStates.entering_name))
-async def enter_name(message: Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer(
         "📍 <b>Адрес доставки</b>\n\n"
         "Укажите полный адрес доставки:\n"
         "• Улица, дом, квартира\n"
         "• Подъезд, этаж, домофон"
     )
     await state.set_state(OrderStates.entering_address)
+    await callback.answer()
 
 
 @router.message(StateFilter(OrderStates.entering_address))
@@ -131,7 +121,6 @@ async def choose_payment(callback: CallbackQuery, state: FSMContext):
         f"<b>Товары:</b>\n{items_text}\n"
         f"💰 <b>Итого: {total} ₽</b>\n\n"
         f"<b>Адрес:</b> {data['address']}\n"
-        f"<b>Имя:</b> {data['name']}\n"
         f"<b>Телефон:</b> {data['phone']}\n"
         f"<b>Оплата:</b> {payment_text}\n\n"
         "Подтвердите оформление заказа:"
@@ -176,7 +165,6 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
             items_json=json.dumps(items_json_list, ensure_ascii=False),
             total_price=data['total'],
             address=data['address'],
-            name=data['name'],
             phone=data['phone'],
             payment_method=data['payment_method'],
             status='new',
