@@ -220,7 +220,7 @@
         const API_BASE = 'https://mandanator.ru';
         let categories = [];
         let products = [];
-        let cart = [];
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
         let activeCategory = null;
         let currentScreen = 'menu';
         let orderData = {
@@ -230,6 +230,11 @@
             comment: '',
             paymentMethod: 'cash'
         };
+
+        // Сохранение корзины в localStorage
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
 
         // Загрузка данных
         async function loadData() {
@@ -287,6 +292,7 @@
                 cart.push({ ...product, qty: 1 });
             }
             
+            saveCart();
             updateCartBadge();
             tg.HapticFeedback.notificationOccurred('success');
         }
@@ -335,15 +341,18 @@
                 cart = cart.filter(c => c.id !== productId);
             }
             
+            saveCart();
             updateCartBadge();
             renderCart();
+            
+            saveCart();
             
             if (cart.length === 0) {
                 showScreen('menu');
             }
         }
 
-        function showScreen(screen) {
+        function showScreen(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screen + 'Screen').classList.add('active');
             currentScreen = screen;
@@ -570,6 +579,7 @@
                 document.getElementById('orderNumber').textContent = '#' + result.order_id;
                 
                 cart = [];
+                localStorage.removeItem('cart');
                 updateCartBadge();
                 
                 showScreen('success');
@@ -686,16 +696,19 @@
                             const data = await response.json();
                             
                             if (data.suggestions && data.suggestions.length > 0) {
-                                addressSuggestions.innerHTML = data.suggestions.map(s => `
+                                addressSuggestions.innerHTML = data.suggestions.map((s, idx) => `
                                     <div style="padding: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s;" 
                                          onmouseover="this.style.background='#f5f5f5'" 
                                          onmouseout="this.style.background='white'"
-                                         onclick="selectAddress('${s.value.replace(/'/g, "\\\\'")}')"
+                                         onclick="selectAddress(${idx})"
                                     >
                                         ${s.value}
                                     </div>
                                 `).join('');
                                 addressSuggestions.style.display = 'block';
+                                
+                                // Сохраняем suggestions для выбора
+                                window.currentSuggestions = data.suggestions;
                             } else {
                                 addressSuggestions.style.display = 'none';
                             }
@@ -716,9 +729,13 @@
         });
         
         // Функция выбора адреса из списка
-        function selectAddress(address) {
-            document.getElementById('addressInput').value = address;
-            document.getElementById('addressSuggestions').style.display = 'none';
+        function selectAddress(index) {
+            if (window.currentSuggestions && window.currentSuggestions[index]) {
+                const addressInput = document.getElementById('addressInput');
+                const addressSuggestions = document.getElementById('addressSuggestions');
+                addressInput.value = window.currentSuggestions[index].value;
+                addressSuggestions.style.display = 'none';
+            }
         }
     </script>
 </body>
