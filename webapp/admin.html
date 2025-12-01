@@ -117,6 +117,17 @@
             50% { transform: scale(1.1); }
         }
         
+        /* Подсветка новых заказов */
+        .new-order-highlight {
+            background: linear-gradient(90deg, rgba(17,153,142,0.15) 0%, rgba(56,239,125,0.15) 100%) !important;
+            animation: fadeOutHighlight 3s ease-out forwards;
+        }
+        
+        @keyframes fadeOutHighlight {
+            0% { background: linear-gradient(90deg, rgba(17,153,142,0.15) 0%, rgba(56,239,125,0.15) 100%); }
+            100% { background: transparent; }
+        }
+        
         /* Мобильная адаптация */
         @media (max-width: 768px) {
             .container { padding: 10px; }
@@ -523,6 +534,9 @@
                         await loadOrders(); // Обновляем список
                         await loadStats(); // Обновляем статистику
                         
+                        // Подсвечиваем новый заказ
+                        highlightNewOrder(latestOrder.id);
+                        
                         // Обновляем бейдж новых заказов
                         updateNewOrdersBadge();
                     }
@@ -545,6 +559,20 @@
             } else {
                 badge.classList.remove('show');
             }
+        }
+        
+        // Подсветка нового заказа
+        function highlightNewOrder(orderId) {
+            setTimeout(() => {
+                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                if (row) {
+                    row.classList.add('new-order-highlight');
+                    // Убираем класс через 3 секунды (анимация сделает это автоматически)
+                    setTimeout(() => {
+                        row.classList.remove('new-order-highlight');
+                    }, 3000);
+                }
+            }, 100); // Небольшая задержка чтобы DOM успел обновиться
         }
         
         // Показываем уведомление о новом заказе
@@ -702,7 +730,10 @@
                 };
 
                 const tbody = document.getElementById('ordersTable');
-                tbody.innerHTML = orders.slice().reverse().map(o => {
+                // Сортируем по ID по убыванию (новые сверху)
+                const sortedOrders = orders.slice().sort((a, b) => b.id - a.id);
+                
+                tbody.innerHTML = sortedOrders.map(o => {
                     const items = JSON.parse(o.items_json || '[]');
                     const itemsPreview = items.slice(0, 2).map(i => i.name).join(', ') + (items.length > 2 ? '...' : '');
                     const clientName = o.user_id ? `ID: ${o.user_id}` : 'Гость';
@@ -711,7 +742,7 @@
                         'Самовывоз';
                     
                     return `
-                    <tr onclick="showOrderDetails(${o.id})" style="cursor: pointer;">
+                    <tr onclick="showOrderDetails(${o.id})" style="cursor: pointer;" data-order-id="${o.id}">
                         <td><strong>#${o.id}</strong></td>
                         <td>${clientName}</td>
                         <td>${o.phone || '-'}</td>
