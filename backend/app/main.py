@@ -93,14 +93,10 @@ async def add_to_cart(user_id: int, item: schemas.AddCartItem):
 
 @app.post("/api/cart")
 async def sync_cart(request: Request):
-    """Синхронизация корзины из WebApp"""
-    import httpx
-    import os
-    
+    """Синхронизация корзины из WebApp (не используется, все в WebApp)"""
     data = await request.json()
     user_id = data.get('user_id', 0)
     items = data.get('items', [])
-    total = data.get('total', 0)
     
     if not user_id:
         raise HTTPException(400, "user_id required")
@@ -111,27 +107,6 @@ async def sync_cart(request: Request):
     # Добавляем новые позиции
     for item in items:
         await crud.add_to_cart(user_id, item['product_id'], item['qty'])
-    
-    # Отправляем сообщение пользователю с кнопкой
-    bot_token = os.getenv('BOT_TOKEN')
-    if bot_token:
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f'https://api.telegram.org/bot{bot_token}/sendMessage',
-                    json={
-                        'chat_id': user_id,
-                        'text': f'✅ Товары добавлены в корзину!\n\n💰 Сумма заказа: {total} ₽\n\nНажмите кнопку ниже, чтобы оформить заказ:',
-                        'reply_markup': {
-                            'inline_keyboard': [[{
-                                'text': '✅ Оформить заказ',
-                                'callback_data': 'start_order'
-                            }]]
-                        }
-                    }
-                )
-        except Exception as e:
-            print(f"Error sending message: {e}")
     
     return {"ok": True}
 
