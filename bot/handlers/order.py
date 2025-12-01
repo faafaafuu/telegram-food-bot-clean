@@ -33,7 +33,7 @@ async def start_order(callback: CallbackQuery, state: FSMContext):
             await callback.answer("❌ Корзина пуста!", show_alert=True)
             return
     
-    await callback.message.edit_text(
+    await callback.message.answer(
         "📍 <b>Адрес доставки</b>\n\n"
         "Укажите полный адрес доставки:\n"
         "• Улица, дом, квартира\n"
@@ -62,14 +62,14 @@ async def enter_phone(message: Message, state: FSMContext):
     await state.update_data(phone=message.text)
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💵 Наличными", callback_data="payment_cash")],
-        [InlineKeyboardButton(text="💳 Картой курьеру", callback_data="payment_card_courier")],
-        [InlineKeyboardButton(text="🌐 Онлайн оплата", callback_data="payment_online")],
+        [InlineKeyboardButton(text="💵 Наличными курьеру", callback_data="payment_cash")],
+        [InlineKeyboardButton(text="💳 Картой курьеру", callback_data="payment_card")],
+        [InlineKeyboardButton(text="🌐 Онлайн (ЮКасса)", callback_data="payment_yukassa")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="cancel_order")]
     ])
     
     await message.answer(
-        "💰 <b>Способ оплаты:</b>\n\n"
+        "💰 <b>Способ оплаты</b>\n\n"
         "Выберите удобный способ оплаты:",
         reply_markup=kb
     )
@@ -110,9 +110,9 @@ async def choose_payment(callback: CallbackQuery, state: FSMContext):
     
     # Формируем текст подтверждения
     payment_texts = {
-        'cash': '💵 Наличными',
-        'card_courier': '💳 Картой курьеру',
-        'online': '🌐 Онлайн оплата'
+        'cash': '💵 Наличными курьеру',
+        'card': '💳 Картой курьеру',
+        'yukassa': '🌐 Онлайн (ЮКасса)'
     }
     payment_text = payment_texts.get(payment_type, payment_type)
     

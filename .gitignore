@@ -7,3 +7,5 @@ cache/
 .env.*
 *.local
 .local.
+**/__pycache__/
+*.pyc
