@@ -396,9 +396,12 @@
         async function requestLogin(event) {
             event.preventDefault();
             
-            const username = document.getElementById('adminUsername').value;
-            const password = document.getElementById('adminPassword').value;
+            const usernameInput = document.getElementById('adminUsername');
+            const passwordInput = document.getElementById('adminPassword');
             const loginBtn = document.getElementById('loginBtn');
+            
+            const username = usernameInput.value;
+            const password = passwordInput.value;
             
             loginBtn.disabled = true;
             loginBtn.textContent = 'Вход...';
@@ -410,9 +413,23 @@
                     body: JSON.stringify({ username, password })
                 });
                 
+                // Проверяем статус ответа
+                if (response.status === 429) {
+                    const errorData = await response.json();
+                    alert('🚫 ' + (errorData.detail || 'Слишком много попыток входа. Попробуйте позже.'));
+                    // Разблокируем поля
+                    usernameInput.disabled = false;
+                    passwordInput.disabled = false;
+                    passwordInput.value = '';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Войти';
+                    passwordInput.focus();
+                    return;
+                }
+                
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok && data.success) {
                     currentUser = data.user;
                     localStorage.setItem('admin_token', data.token);
                     localStorage.setItem('admin_user', JSON.stringify(data.user));
@@ -420,23 +437,23 @@
                 } else {
                     alert('❌ ' + (data.detail || 'Неверный логин или пароль'));
                     // Разблокируем кнопку и поля
+                    usernameInput.disabled = false;
+                    passwordInput.disabled = false;
+                    passwordInput.value = '';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Войти';
-                    document.getElementById('adminUsername').disabled = false;
-                    document.getElementById('adminPassword').disabled = false;
-                    document.getElementById('adminPassword').value = '';
-                    document.getElementById('adminPassword').focus();
+                    passwordInput.focus();
                 }
             } catch (err) {
                 console.error('Login error:', err);
-                alert('❌ Ошибка входа. Проверьте логин и пароль.');
+                alert('❌ Ошибка соединения. Проверьте подключение к интернету.');
                 // Разблокируем кнопку и поля
+                usernameInput.disabled = false;
+                passwordInput.disabled = false;
+                passwordInput.value = '';
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти';
-                document.getElementById('adminUsername').disabled = false;
-                document.getElementById('adminPassword').disabled = false;
-                document.getElementById('adminPassword').value = '';
-                document.getElementById('adminPassword').focus();
+                passwordInput.focus();
             }
         }
 

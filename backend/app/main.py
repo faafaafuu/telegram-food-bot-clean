@@ -23,7 +23,7 @@ app.add_middleware(
 
 # Защита от брутфорса
 auth_attempts = {}  # {ip: [(timestamp, success), ...]}
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 20
 BLOCK_TIME = 300  # 5 минут
 
 # Хранилище токенов {token: {user_id, created_at}}
