@@ -195,6 +195,7 @@
             Номер заказа: <strong id="orderNumber"></strong><br>
             Следите за статусом в боте
         </div>
+        <button class="btn-primary" onclick="goHome()" style="margin-top: 30px;">🏠 Вернуться к меню</button>
     </div>
 
     <!-- Значок корзины -->
@@ -294,7 +295,9 @@
             
             saveCart();
             updateCartBadge();
-            tg.HapticFeedback.notificationOccurred('success');
+            if (isTelegram && tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
         }
 
         function updateCartBadge() {
@@ -404,6 +407,13 @@
             const currentIndex = flow.indexOf(currentScreen);
             if (currentIndex > 0) {
                 showScreen(flow[currentIndex - 1]);
+            }
+        }
+
+        function goHome() {
+            showScreen('menu');
+            if (isTelegram && tg.MainButton) {
+                tg.MainButton.hide();
             }
         }
 
@@ -584,9 +594,9 @@
                 
                 showScreen('success');
                 
-                // Закрываем WebApp через 2 секунды только в Telegram
-                if (isTelegram && tg.close) {
-                    setTimeout(() => tg.close(), 2000);
+                // Скрываем кнопку заказа, показываем экран успеха с кнопкой возврата
+                if (isTelegram && tg.MainButton) {
+                    tg.MainButton.hide();
                 }
             } catch (error) {
                 console.error('Order error:', error);
