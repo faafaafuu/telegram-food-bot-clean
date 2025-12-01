@@ -22,6 +22,8 @@ class OrderStates(StatesGroup):
 @router.callback_query(F.data == "start_order")
 async def start_order(callback: CallbackQuery, state: FSMContext):
     """Начать оформление заказа"""
+    print(f"[DEBUG] start_order triggered by user {callback.from_user.id}")
+    
     # Проверяем что корзина не пуста
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -29,10 +31,13 @@ async def start_order(callback: CallbackQuery, state: FSMContext):
         )
         cart_items = result.scalars().all()
         
+        print(f"[DEBUG] Cart items count: {len(cart_items)}")
+        
         if not cart_items:
             await callback.answer("❌ Корзина пуста!", show_alert=True)
             return
     
+    print("[DEBUG] Sending address request...")
     await callback.message.answer(
         "📍 <b>Адрес доставки</b>\n\n"
         "Укажите полный адрес доставки:\n"
@@ -41,6 +46,7 @@ async def start_order(callback: CallbackQuery, state: FSMContext):
     )
     await state.set_state(OrderStates.entering_address)
     await callback.answer()
+    print("[DEBUG] start_order completed")
 
 
 @router.message(StateFilter(OrderStates.entering_address))

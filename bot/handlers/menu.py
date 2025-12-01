@@ -14,13 +14,17 @@ WEBAPP_URL = os.getenv('WEBHOOK_URL') or os.getenv('BASE_URL', 'https://mandanat
 @router.message(F.web_app_data)
 async def handle_webapp_data(message: Message, state: FSMContext):
     """Обработка данных от WebApp (checkout)"""
+    print(f"[DEBUG MENU] WebApp data received from user {message.from_user.id}")
     try:
         data = json.loads(message.web_app_data.data)
         action = data.get('action')
+        print(f"[DEBUG MENU] Action: {action}, Data: {data}")
         
         if action == 'checkout':
             items = data.get('items', [])
             total = data.get('total', 0)
+            
+            print(f"[DEBUG MENU] Items count: {len(items)}, Total: {total}")
             
             if not items:
                 await message.answer("❌ Корзина пуста!")
@@ -43,6 +47,8 @@ async def handle_webapp_data(message: Message, state: FSMContext):
                     session.add(cart_item)
                 await session.commit()
             
+            print(f"[DEBUG MENU] Cart saved, sending button...")
+            
             # Сохраняем total в state для будущего использования
             await state.update_data(checkout_total=total)
             
@@ -56,11 +62,14 @@ async def handle_webapp_data(message: Message, state: FSMContext):
                     [InlineKeyboardButton(text="✅ Оформить заказ", callback_data="start_order")]
                 ])
             )
+            print(f"[DEBUG MENU] Button sent successfully")
         else:
             await message.answer("Неизвестное действие от WebApp")
             
     except Exception as e:
-        print(f"Error handling webapp data: {e}")
+        print(f"[ERROR MENU] Error handling webapp data: {e}")
+        import traceback
+        traceback.print_exc()
         await message.answer("❌ Ошибка обработки данных. Попробуйте еще раз.")
 
 

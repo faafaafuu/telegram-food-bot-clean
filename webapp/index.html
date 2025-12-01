@@ -213,6 +213,8 @@
         }
 
         function checkout() {
+            console.log('[CHECKOUT] Starting checkout, cart:', cart);
+            
             if (cart.length === 0) {
                 tg.showAlert('Корзина пуста!');
                 return;
@@ -226,12 +228,24 @@
                 price: c.price
             }));
             
-            // Отправляем данные заказа боту через WebApp
-            tg.sendData(JSON.stringify({
+            console.log('[CHECKOUT] Total:', total, 'Items:', items);
+            
+            const dataToSend = JSON.stringify({
                 action: 'checkout',
                 items: items,
                 total: total
-            }));
+            });
+            
+            console.log('[CHECKOUT] Sending data:', dataToSend);
+            
+            // Отправляем данные заказа боту через WebApp
+            try {
+                tg.sendData(dataToSend);
+                console.log('[CHECKOUT] Data sent successfully');
+            } catch (error) {
+                console.error('[CHECKOUT] Error sending data:', error);
+                tg.showAlert('Ошибка отправки данных: ' + error.message);
+            }
             
             closeCart();
         }
