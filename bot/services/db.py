@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, BigInteger, String, Float, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
 import config
@@ -37,7 +37,7 @@ class Product(Base):
 class Cart(Base):
     __tablename__ = 'cart'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(BigInteger, nullable=False)
     product_id = Column(Integer, ForeignKey('products.id'))
     qty = Column(Integer, default=1)
     product = relationship("Product")
@@ -45,7 +45,7 @@ class Cart(Base):
 class Order(Base):
     __tablename__ = 'orders'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(BigInteger, nullable=False)
     items_json = Column(Text)
     total_price = Column(Float)
     address = Column(String)
@@ -57,7 +57,7 @@ class Order(Base):
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     name = Column(String)
     phone = Column(String)
 
