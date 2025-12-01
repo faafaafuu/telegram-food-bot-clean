@@ -243,11 +243,13 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th class="hide-mobile">ID</th>
-                                    <th class="hide-mobile">Клиент</th>
+                                    <th>№</th>
+                                    <th>Клиент</th>
+                                    <th>Телефон</th>
                                     <th>Сумма</th>
                                     <th>Статус</th>
                                     <th class="hide-mobile">Товары</th>
+                                    <th class="hide-mobile">Адрес</th>
                                     <th class="hide-mobile">Дата</th>
                                     <th>Действия</th>
                                 </tr>
@@ -567,7 +569,7 @@
         // Загрузка товаров
         async function loadProducts() {
             try {
-                const res = await authFetch('/api/products');
+                const res = await fetch(API_BASE.replace('/admin', '') + '/products');
                 products = await res.json();
 
                 const tbody = document.getElementById('productsTable');
@@ -592,7 +594,7 @@
         // Загрузка категорий
         async function loadCategories() {
             try {
-                const res = await authFetch('/api/categories');
+                const res = await fetch(API_BASE.replace('/admin', '') + '/categories');
                 categories = await res.json();
 
                 // Обновляем таблицу
@@ -644,14 +646,20 @@
                 tbody.innerHTML = orders.slice().reverse().map(o => {
                     const items = JSON.parse(o.items_json || '[]');
                     const itemsPreview = items.slice(0, 2).map(i => i.name).join(', ') + (items.length > 2 ? '...' : '');
+                    const clientName = o.user_id ? `ID: ${o.user_id}` : 'Гость';
+                    const addressShort = o.address && o.address !== 'Самовывоз' ? 
+                        (o.address.length > 30 ? o.address.substring(0, 30) + '...' : o.address) : 
+                        'Самовывоз';
                     
                     return `
                     <tr onclick="showOrderDetails(${o.id})" style="cursor: pointer;">
-                        <td class="hide-mobile">#${o.id}</td>
-                        <td class="hide-mobile">${o.user_id || 'Гость'}</td>
+                        <td><strong>#${o.id}</strong></td>
+                        <td>${clientName}</td>
+                        <td>${o.phone || '-'}</td>
                         <td><strong>${parseFloat(o.total_price).toFixed(0)} ₽</strong></td>
                         <td><span class="badge ${statusBadges[o.status]}">${statusNames[o.status]}</span></td>
                         <td class="hide-mobile">${itemsPreview}</td>
+                        <td class="hide-mobile">${addressShort}</td>
                         <td class="hide-mobile">${new Date(o.created_at).toLocaleString('ru', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</td>
                         <td onclick="event.stopPropagation()">
                             <select onchange="changeOrderStatus(${o.id}, this.value)" class="form-input" style="padding: 6px 10px; width: auto; min-width: 120px;">
