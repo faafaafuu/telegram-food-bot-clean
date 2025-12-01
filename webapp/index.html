@@ -399,9 +399,32 @@
             }
         }
 
+        // Маска телефона
+        function formatPhone(value) {
+            const cleaned = value.replace(/\D/g, '');
+            let formatted = '+7';
+            
+            if (cleaned.length > 1) {
+                formatted += ' (' + cleaned.substring(1, 4);
+            }
+            if (cleaned.length >= 5) {
+                formatted += ') ' + cleaned.substring(4, 7);
+            }
+            if (cleaned.length >= 8) {
+                formatted += '-' + cleaned.substring(7, 9);
+            }
+            if (cleaned.length >= 10) {
+                formatted += '-' + cleaned.substring(9, 11);
+            }
+            
+            return formatted;
+        }
+
         function validateAddress() {
-            const phone = document.getElementById('phoneInput').value;
-            if (!phone || phone.length < 10) {
+            const phoneInput = document.getElementById('phoneInput');
+            const phone = phoneInput.value.replace(/\D/g, '');
+            
+            if (!phone || phone.length !== 11) {
                 tg.showAlert('Введите корректный номер телефона');
                 return false;
             }
@@ -472,6 +495,9 @@
                 const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
                 const total = calculateTotal();
                 
+                // Очищаем телефон от форматирования для отправки
+                const phoneRaw = orderData.phone.replace(/\D/g, '');
+                
                 const orderPayload = {
                     user_id: userId,
                     items: cart.map(c => ({
@@ -482,11 +508,13 @@
                     })),
                     total_price: total,
                     address: orderData.deliveryType === 'delivery' ? orderData.address : 'Самовывоз',
-                    phone: orderData.phone,
+                    phone: '+' + phoneRaw,
                     comment: orderData.comment,
                     payment_method: orderData.paymentMethod,
                     delivery_type: orderData.deliveryType
                 };
+                
+                console.log('Sending order:', orderPayload);
                 
                 const response = await fetch(API_BASE + '/api/orders', {
                     method: 'POST',
@@ -494,7 +522,11 @@
                     body: JSON.stringify(orderPayload)
                 });
                 
-                if (!response.ok) throw new Error('Order failed');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Order error:', errorText);
+                    throw new Error('Order failed: ' + response.status);
+                }
                 
                 const result = await response.json();
                 document.getElementById('orderNumber').textContent = '#' + result.order_id;
@@ -515,6 +547,44 @@
 
         // Инициализация
         loadData();
+        
+        // Обработчик маски телефона
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.getElementById('phoneInput');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    
+                    // Автоматически добавляем 7 если пусто или начинается с 8
+                    if (value.length === 0) {
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    if (value[0] === '8') {
+                        value = '7' + value.substring(1);
+                    }
+                    
+                    if (value[0] !== '7') {
+                        value = '7' + value;
+                    }
+                    
+                    e.target.value = formatPhone(value);
+                });
+                
+                phoneInput.addEventListener('focus', function(e) {
+                    if (!e.target.value) {
+                        e.target.value = '+7 ';
+                    }
+                });
+                
+                phoneInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && e.target.value === '+7 ') {
+                        e.target.value = '';
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

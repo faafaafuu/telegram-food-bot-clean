@@ -28,15 +28,14 @@ async def cmd_admin(message: Message):
     )
     
     await message.answer(
-        "👨‍💼 <b>Админ-панель Jafood</b>\n\n"
+        "👨‍💼 Админ-панель Jafood\n\n"
         "Управляйте:\n"
         "• 🍔 Меню и товарами\n"
         "• 📁 Категориями\n"
         "• 📋 Заказами и статусами\n"
         "• 📊 Статистикой продаж\n\n"
         "Нажмите кнопку ниже для входа:",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
+        reply_markup=builder.as_markup()
     )
 
 @router.message(Command('addproduct'))
