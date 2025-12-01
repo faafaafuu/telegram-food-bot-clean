@@ -212,7 +212,7 @@
             }
         }
 
-        function checkout() {
+        async function checkout() {
             console.log('[CHECKOUT] Starting checkout, cart:', cart);
             
             if (cart.length === 0) {
@@ -230,21 +230,35 @@
             
             console.log('[CHECKOUT] Total:', total, 'Items:', items);
             
-            const dataToSend = JSON.stringify({
-                action: 'checkout',
-                items: items,
-                total: total
-            });
-            
-            console.log('[CHECKOUT] Sending data:', dataToSend);
-            
-            // Отправляем данные заказа боту через WebApp
             try {
-                tg.sendData(dataToSend);
-                console.log('[CHECKOUT] Data sent successfully');
+                // Отправляем корзину на backend
+                const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0;
+                console.log('[CHECKOUT] User ID:', userId);
+                
+                const response = await fetch(API_BASE + '/api/cart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        items: items,
+                        total: total
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('[CHECKOUT] Cart saved successfully');
+                    showNotification('✅ Корзина сохранена! Вернитесь в чат для оформления заказа');
+                    
+                    // Закрываем WebApp
+                    setTimeout(function() {
+                        tg.close();
+                    }, 1500);
+                } else {
+                    throw new Error('Server error: ' + response.status);
+                }
             } catch (error) {
-                console.error('[CHECKOUT] Error sending data:', error);
-                tg.showAlert('Ошибка отправки данных: ' + error.message);
+                console.error('[CHECKOUT] Error:', error);
+                tg.showAlert('Ошибка сохранения корзины: ' + error.message);
             }
             
             closeCart();
