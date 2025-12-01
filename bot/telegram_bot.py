@@ -40,9 +40,6 @@ async def set_bot_commands():
     """Установка команд бота в меню"""
     commands = [
         BotCommand(command="start", description="🏠 Главное меню"),
-        BotCommand(command="menu", description="🍕 Открыть меню"),
-        BotCommand(command="cart", description="🛒 Корзина"),
-        BotCommand(command="orders", description="📋 Мои заказы"),
         BotCommand(command="about", description="ℹ️ О ресторане"),
     ]
     await bot.set_my_commands(commands)

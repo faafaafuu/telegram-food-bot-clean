@@ -260,10 +260,3 @@ async def cmd_orders(message: Message):
                 [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
             ])
         )
-
-
-@router.callback_query(F.data == "my_orders")
-async def callback_orders(callback: CallbackQuery):
-    """Показать заказы через callback"""
-    await cmd_orders(callback.message)
-    await callback.answer()

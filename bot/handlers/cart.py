@@ -42,15 +42,15 @@ async def get_cart_items(user_id: int):
 
 @router.message(Command("cart"))
 async def cmd_cart(message: Message):
-    """Показать корзину"""
-    await show_cart_handler(message.from_user.id, message)
-
-
-@router.callback_query(F.data == "show_cart")
-async def callback_show_cart(callback: CallbackQuery):
-    """Показать корзину через callback"""
-    await show_cart_handler(callback.from_user.id, callback.message, edit=True)
-    await callback.answer()
+    """Показать корзину (устарело, все в WebApp)"""
+    await message.answer(
+        "🛒 <b>Корзина</b>\n\n"
+        "Теперь корзина доступна прямо в приложении!\n\n"
+        "Откройте меню через кнопку ниже:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🍕 Открыть меню", callback_data="main_menu")]
+        ])
+    )
 
 
 async def show_cart_handler(user_id: int, message: Message, edit: bool = False):
