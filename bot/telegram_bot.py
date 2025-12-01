@@ -43,6 +43,21 @@ async def set_bot_commands():
         BotCommand(command="orders", description="📋 Мои заказы"),
         BotCommand(command="about", description="ℹ️ О ресторане"),
     ]
+    
+    # Добавляем команду /admin для администраторов
+    if ADMIN_IDS:
+        admin_commands = commands + [
+            BotCommand(command="admin", description="👨‍💼 Админ-панель")
+        ]
+        # Устанавливаем разные команды для админов
+        for admin_id in ADMIN_IDS:
+            try:
+                from aiogram.types import BotCommandScopeChat
+                await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin_id))
+            except Exception as e:
+                logger.warning(f"Не удалось установить команды для админа {admin_id}: {e}")
+    
+    # Общие команды для всех
     await bot.set_my_commands(commands)
     logger.info("✅ Команды бота установлены")
 

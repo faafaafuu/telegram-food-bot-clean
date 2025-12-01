@@ -1,18 +1,43 @@
 from aiogram import Router
-from aiogram.types import Message
+from aiogram.types import Message, WebAppInfo
 from aiogram.filters import Command
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+import os
 
 import config
 from bot.services.db import AsyncSessionLocal, Product, Category
 
 router = Router()
 
+ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if id.strip()]
+BASE_URL = os.getenv('BASE_URL', 'https://mandanator.ru')
+
+
 @router.message(Command('admin'))
 async def cmd_admin(message: Message):
+    """Открыть админ-панель через WebApp"""
     if message.from_user.id not in config.ADMIN_IDS:
-        await message.answer('Доступ запрещён')
+        await message.answer('❌ Доступ запрещён')
         return
-    await message.answer('Админ-панель:\n/addproduct - добавить продукт (формат: name|desc|price|category|tags)\n/listproducts - список')
+    
+    # Создаём кнопку с WebApp для админки
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🔐 Открыть админ-панель",
+        web_app=WebAppInfo(url=f"{BASE_URL}/webapp/admin.html")
+    )
+    
+    await message.answer(
+        "👨‍💼 <b>Админ-панель Jafood</b>\n\n"
+        "Управляйте:\n"
+        "• 🍔 Меню и товарами\n"
+        "• 📁 Категориями\n"
+        "• 📋 Заказами и статусами\n"
+        "• 📊 Статистикой продаж\n\n"
+        "Нажмите кнопку ниже для входа:",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
 
 @router.message(Command('addproduct'))
 async def cmd_addproduct(message: Message):
