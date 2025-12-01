@@ -219,7 +219,11 @@ async def create_order(request: Request):
     import os
     import json as json_lib
     
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception as e:
+        raise HTTPException(400, f"Invalid JSON: {str(e)}")
+    
     user_id = data.get('user_id')
     items = data.get('items', [])
     total_price = data.get('total_price', 0)
@@ -229,8 +233,15 @@ async def create_order(request: Request):
     payment_method = data.get('payment_method', 'cash')
     delivery_type = data.get('delivery_type', 'delivery')
     
+    # Валидация
     if not user_id:
-        raise HTTPException(400, "user_id required")
+        raise HTTPException(400, "user_id is required")
+    
+    if not items:
+        raise HTTPException(400, "items are required")
+    
+    if not phone:
+        raise HTTPException(400, "phone is required")
     
     # Создаем заказ в БД
     from sqlalchemy import insert
