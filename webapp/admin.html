@@ -124,13 +124,38 @@
     <div class="auth-screen" id="authScreen">
         <div class="auth-card">
             <h1>🔐 Админ-панель</h1>
-            <p>Войдите через Telegram для доступа к панели управления</p>
-            <button class="telegram-login" onclick="loginWithTelegram()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.781-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.14.121.098.155.23.171.324.016.094.036.308.02.475z"/>
-                </svg>
-                Войти через Telegram
-            </button>
+            <p id="authDescription">Выберите способ авторизации</p>
+            
+            <!-- Выбор метода авторизации -->
+            <div id="authMethodSelect">
+                <button class="telegram-login" onclick="selectAuthMethod('telegram')" style="width: 100%; margin-bottom: 10px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.781-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.14.121.098.155.23.171.324.016.094.036.308.02.475z"/>
+                    </svg>
+                    Войти через Telegram
+                </button>
+                <button class="telegram-login" onclick="selectAuthMethod('password')" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    🔑 Логин и пароль
+                </button>
+            </div>
+            
+            <!-- Форма логин/пароль -->
+            <div id="passwordAuthForm" style="display: none;">
+                <form onsubmit="loginWithPassword(event)">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="adminUsername" class="form-input" placeholder="Логин" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <input type="password" id="adminPassword" class="form-input" placeholder="Пароль" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px;">
+                    </div>
+                    <button type="submit" class="telegram-login" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        Войти
+                    </button>
+                    <button type="button" onclick="backToAuthSelect()" style="width: 100%; margin-top: 10px; background: #f1f3f5; color: #666; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
+                        Назад
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -308,6 +333,57 @@
         function showAuthScreen() {
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('adminContainer').style.display = 'none';
+            document.getElementById('authMethodSelect').style.display = 'block';
+            document.getElementById('passwordAuthForm').style.display = 'none';
+        }
+
+        function selectAuthMethod(method) {
+            if (method === 'telegram') {
+                loginWithTelegram();
+            } else if (method === 'password') {
+                document.getElementById('authMethodSelect').style.display = 'none';
+                document.getElementById('passwordAuthForm').style.display = 'block';
+                document.getElementById('authDescription').textContent = 'Введите логин и пароль';
+            }
+        }
+
+        function backToAuthSelect() {
+            document.getElementById('authMethodSelect').style.display = 'block';
+            document.getElementById('passwordAuthForm').style.display = 'none';
+            document.getElementById('authDescription').textContent = 'Выберите способ авторизации';
+        }
+
+        async function loginWithPassword(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            try {
+                const response = await fetch('/api/admin/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        auth_type: 'password',
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('admin_token', data.token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.user));
+                    showAdminPanel();
+                } else {
+                    alert('❌ Неверный логин или пароль');
+                }
+            } catch (err) {
+                console.error('Auth error:', err);
+                alert('❌ Ошибка авторизации. Проверьте логин и пароль.');
+            }
         }
 
         function showAdminPanel() {
@@ -335,30 +411,9 @@
                     alert('Откройте админ-панель через бота @jafood_bot');
                 }
             } else {
-                // Fallback для тестирования вне Telegram
-                const testUser = prompt('Введите ваш Telegram ID для входа:');
-                if (testUser) {
-                    fetch('/api/admin/auth', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: parseInt(testUser) })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            currentUser = data.user;
-                            localStorage.setItem('admin_token', data.token);
-                            localStorage.setItem('admin_user', JSON.stringify(data.user));
-                            showAdminPanel();
-                        } else {
-                            alert('Доступ запрещён! Вы не являетесь администратором.');
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Auth error:', err);
-                        alert('Ошибка авторизации');
-                    });
-                }
+                // Если открыто не из Telegram, предлагаем ввести ID вручную
+                alert('Для авторизации через Telegram откройте админ-панель из бота @jafood_bot или используйте логин/пароль');
+                backToAuthSelect();
             }
         }
 
@@ -367,6 +422,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
+                    auth_type: 'telegram',
                     user_id: user.id,
                     first_name: user.first_name,
                     last_name: user.last_name,

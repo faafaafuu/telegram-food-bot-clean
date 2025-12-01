@@ -82,40 +82,75 @@ async def startup():
 
 @app.post("/api/admin/auth")
 async def admin_auth(request: Request, payload: dict):
-    """Авторизация администратора"""
+    """Авторизация администратора через Telegram или логин/пароль"""
     client_ip = request.client.host
     check_rate_limit(client_ip)
     
-    user_id = payload.get('user_id')
-    if not user_id:
-        auth_attempts[client_ip].append((time.time(), False))
-        raise HTTPException(400, "Не указан user_id")
+    auth_type = payload.get('auth_type', 'telegram')  # telegram или password
     
-    # Получаем список админов из переменных окружения
-    admin_ids_str = os.getenv('ADMIN_IDS', '')
-    admin_ids = [int(id.strip()) for id in admin_ids_str.split(',') if id.strip()]
-    
-    if not admin_ids:
-        raise HTTPException(500, "Не настроены администраторы")
-    
-    if user_id not in admin_ids:
-        auth_attempts[client_ip].append((time.time(), False))
-        raise HTTPException(403, "Доступ запрещён")
-    
-    # Успешная аутентификация
-    auth_attempts[client_ip].append((time.time(), True))
-    token = generate_token(user_id)
-    
-    return {
-        'success': True,
-        'token': token,
-        'user': {
-            'id': user_id,
-            'first_name': payload.get('first_name', 'Админ'),
-            'last_name': payload.get('last_name', ''),
-            'username': payload.get('username', '')
+    if auth_type == 'password':
+        # Авторизация по логину/паролю
+        username = payload.get('username')
+        password = payload.get('password')
+        
+        admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+        admin_password = os.getenv('ADMIN_PASSWORD', 'admin')
+        
+        if not username or not password:
+            auth_attempts[client_ip].append((time.time(), False))
+            raise HTTPException(400, "Не указан логин или пароль")
+        
+        if username != admin_username or password != admin_password:
+            auth_attempts[client_ip].append((time.time(), False))
+            raise HTTPException(403, "Неверный логин или пароль")
+        
+        # Успешная аутентификация
+        auth_attempts[client_ip].append((time.time(), True))
+        token = generate_token(0)  # используем 0 как user_id для пароль-авторизации
+        
+        return {
+            'success': True,
+            'token': token,
+            'user': {
+                'id': 0,
+                'first_name': 'Администратор',
+                'last_name': '',
+                'username': username
+            }
         }
-    }
+    
+    else:
+        # Авторизация через Telegram
+        user_id = payload.get('user_id')
+        if not user_id:
+            auth_attempts[client_ip].append((time.time(), False))
+            raise HTTPException(400, "Не указан user_id")
+        
+        # Получаем список админов из переменных окружения
+        admin_ids_str = os.getenv('ADMIN_IDS', '')
+        admin_ids = [int(id.strip()) for id in admin_ids_str.split(',') if id.strip()]
+        
+        if not admin_ids:
+            raise HTTPException(500, "Не настроены администраторы")
+        
+        if user_id not in admin_ids:
+            auth_attempts[client_ip].append((time.time(), False))
+            raise HTTPException(403, "Доступ запрещён")
+        
+        # Успешная аутентификация
+        auth_attempts[client_ip].append((time.time(), True))
+        token = generate_token(user_id)
+        
+        return {
+            'success': True,
+            'token': token,
+            'user': {
+                'id': user_id,
+                'first_name': payload.get('first_name', 'Админ'),
+                'last_name': payload.get('last_name', ''),
+                'username': payload.get('username', '')
+            }
+        }
 
 
 @app.get("/api/categories")
