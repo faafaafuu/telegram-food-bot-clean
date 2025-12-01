@@ -1,9 +1,14 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi.responses import HTMLResponse
 import uvicorn
+import os
+import hashlib
+import time
+import secrets
+from typing import Optional
 
 from . import db, crud, schemas, payments
 
@@ -16,6 +21,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Защита от брутфорса
+auth_attempts = {}  # {ip: [(timestamp, success), ...]}
+MAX_ATTEMPTS = 5
+BLOCK_TIME = 300  # 5 минут
+
+# Хранилище токенов {token: {user_id, created_at}}
+active_tokens = {}
+
+def check_rate_limit(ip: str):
+    """Проверка на брутфорс"""
+    now = time.time()
+    if ip not in auth_attempts:
+        auth_attempts[ip] = []
+    
+    # Удаляем старые попытки
+    auth_attempts[ip] = [(t, s) for t, s in auth_attempts[ip] if now - t < BLOCK_TIME]
+    
+    # Проверяем количество неудачных попыток
+    failed = [t for t, s in auth_attempts[ip] if not s]
+    if len(failed) >= MAX_ATTEMPTS:
+        raise HTTPException(429, f"Слишком много попыток входа. Попробуйте через {BLOCK_TIME // 60} минут")
+
+def generate_token(user_id: int) -> str:
+    """Генерация безопасного токена"""
+    token = secrets.token_urlsafe(32)
+    active_tokens[token] = {
+        'user_id': user_id,
+        'created_at': time.time()
+    }
+    return token
+
+def verify_admin_token(authorization: Optional[str] = Header(None)) -> int:
+    """Проверка токена администратора"""
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(401, "Требуется авторизация")
+    
+    token = authorization.replace('Bearer ', '')
+    if token not in active_tokens:
+        raise HTTPException(401, "Недействительный токен")
+    
+    # Проверяем срок действия (24 часа)
+    token_data = active_tokens[token]
+    if time.time() - token_data['created_at'] > 86400:
+        del active_tokens[token]
+        raise HTTPException(401, "Токен истёк")
+    
+    return token_data['user_id']
+
 # Mount the webapp static files at /webapp (resolve relative to project root)
 static_dir = Path(__file__).resolve().parent.parent.parent.joinpath('webapp')
 # Serve SPA: enable html=True so directory requests return index.html
@@ -27,19 +80,57 @@ async def startup():
     await db.create_sample_data()
 
 
+@app.post("/api/admin/auth")
+async def admin_auth(request: Request, payload: dict):
+    """Авторизация администратора"""
+    client_ip = request.client.host
+    check_rate_limit(client_ip)
+    
+    user_id = payload.get('user_id')
+    if not user_id:
+        auth_attempts[client_ip].append((time.time(), False))
+        raise HTTPException(400, "Не указан user_id")
+    
+    # Получаем список админов из переменных окружения
+    admin_ids_str = os.getenv('ADMIN_IDS', '')
+    admin_ids = [int(id.strip()) for id in admin_ids_str.split(',') if id.strip()]
+    
+    if not admin_ids:
+        raise HTTPException(500, "Не настроены администраторы")
+    
+    if user_id not in admin_ids:
+        auth_attempts[client_ip].append((time.time(), False))
+        raise HTTPException(403, "Доступ запрещён")
+    
+    # Успешная аутентификация
+    auth_attempts[client_ip].append((time.time(), True))
+    token = generate_token(user_id)
+    
+    return {
+        'success': True,
+        'token': token,
+        'user': {
+            'id': user_id,
+            'first_name': payload.get('first_name', 'Админ'),
+            'last_name': payload.get('last_name', ''),
+            'username': payload.get('username', '')
+        }
+    }
+
+
 @app.get("/api/categories")
 async def get_categories():
     return await crud.list_categories()
 
 
 @app.post('/api/admin/category')
-async def api_create_category(payload: dict):
+async def api_create_category(payload: dict, user_id: int = Depends(verify_admin_token)):
     c = await crud.create_category(payload)
     return c
 
 
 @app.put('/api/admin/category/{cat_id}')
-async def api_update_category(cat_id: int, payload: dict):
+async def api_update_category(cat_id: int, payload: dict, user_id: int = Depends(verify_admin_token)):
     c = await crud.update_category(cat_id, payload)
     if not c:
         raise HTTPException(404, 'category not found')
@@ -47,7 +138,7 @@ async def api_update_category(cat_id: int, payload: dict):
 
 
 @app.delete('/api/admin/category/{cat_id}')
-async def api_delete_category(cat_id: int):
+async def api_delete_category(cat_id: int, user_id: int = Depends(verify_admin_token)):
     ok = await crud.delete_category(cat_id)
     if not ok:
         raise HTTPException(404, 'category not found')
@@ -60,13 +151,13 @@ async def get_products(category_id: int = None):
 
 
 @app.post('/api/admin/product')
-async def api_create_product(payload: dict):
+async def api_create_product(payload: dict, user_id: int = Depends(verify_admin_token)):
     p = await crud.create_product(payload)
     return p
 
 
 @app.put('/api/admin/product/{product_id}')
-async def api_update_product(product_id: int, payload: dict):
+async def api_update_product(product_id: int, payload: dict, user_id: int = Depends(verify_admin_token)):
     p = await crud.update_product(product_id, payload)
     if not p:
         raise HTTPException(404, 'product not found')
@@ -74,7 +165,7 @@ async def api_update_product(product_id: int, payload: dict):
 
 
 @app.delete('/api/admin/product/{product_id}')
-async def api_delete_product(product_id: int):
+async def api_delete_product(product_id: int, user_id: int = Depends(verify_admin_token)):
     ok = await crud.delete_product(product_id)
     if not ok:
         raise HTTPException(404, 'product not found')
@@ -222,12 +313,12 @@ async def get_orders_by_tg(tg_id: int):
 
 
 @app.get('/api/admin/orders')
-async def admin_list_orders():
+async def admin_list_orders(user_id: int = Depends(verify_admin_token)):
     return await crud.list_orders_all()
 
 
 @app.post('/api/admin/order/{order_id}/status')
-async def admin_change_status(order_id: int, payload: dict):
+async def admin_change_status(order_id: int, payload: dict, user_id: int = Depends(verify_admin_token)):
     # payload: {"status": "ready"}
     status = payload.get('status')
     if not status:

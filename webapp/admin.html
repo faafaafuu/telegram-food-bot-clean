@@ -4,158 +4,227 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель - Jafood</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
         
-        .header { background: #ff6900; color: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header h1 { font-size: 24px; }
+        /* Экран авторизации */
+        .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .auth-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; }
+        .auth-card h1 { font-size: 28px; margin-bottom: 10px; color: #1a1a1a; }
+        .auth-card p { color: #666; margin-bottom: 30px; }
+        .telegram-login { background: #0088cc; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s; }
+        .telegram-login:hover { background: #007ab8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,136,204,0.4); }
+        .telegram-login:active { transform: translateY(0); }
         
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        /* Основной интерфейс */
+        .admin-container { display: none; }
         
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; }
-        .tab { padding: 10px 20px; border: none; background: #f0f0f0; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .tab.active { background: #ff6900; color: white; }
+        .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 20px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .logout-btn { background: #f1f3f5; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .logout-btn:hover { background: #e9ecef; }
         
-        .section { display: none; }
-        .section.active { display: block; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
         
-        .btn { padding: 12px 24px; background: #ff6900; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .btn:hover { background: #e55e00; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 30px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 8px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .tab { padding: 12px 24px; border: none; background: transparent; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; color: #666; transition: all 0.3s; position: relative; }
+        .tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .btn { padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+        .btn:active { transform: translateY(0); }
         .btn-sm { padding: 8px 16px; font-size: 13px; }
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); box-shadow: 0 4px 12px rgba(17,153,142,0.3); }
+        .btn-danger { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); box-shadow: 0 4px 12px rgba(238,9,121,0.3); }
         
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .card h3 { font-size: 18px; margin-bottom: 20px; font-weight: 600; }
         
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; font-weight: 600; }
-        tr:hover { background: #f8f9fa; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 16px; text-align: left; border-bottom: 1px solid #f1f3f5; }
+        th { background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%); font-weight: 600; color: #495057; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        tr:hover { background: rgba(102,126,234,0.05); }
+        tbody tr { transition: all 0.2s; }
+        th:first-child { border-top-left-radius: 12px; }
+        th:last-child { border-top-right-radius: 12px; }
         
-        .form-group { margin-bottom: 15px; }
-        .form-label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        .form-input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; }
-        .form-input:focus { outline: none; border-color: #ff6900; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #495057; }
+        .form-input, select { width: 100%; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 14px; font-family: inherit; transition: all 0.3s; background: white; }
+        .form-input:focus, select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
+        textarea.form-input { resize: vertical; min-height: 80px; }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
         .modal.show { display: flex; }
-        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-title { font-size: 20px; font-weight: 700; }
-        .close { font-size: 28px; cursor: pointer; color: #666; }
+        .modal-content { background: white; padding: 35px; border-radius: 24px; max-width: 540px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUp 0.3s; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .modal-title { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .close { font-size: 28px; cursor: pointer; color: #adb5bd; transition: all 0.3s; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .close:hover { background: #f1f3f5; color: #495057; }
         
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .stat-value { font-size: 32px; font-weight: 700; color: #ff6900; }
-        .stat-label { font-size: 14px; color: #666; margin-top: 5px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%); backdrop-filter: blur(10px); padding: 25px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%); border-radius: 0 0 0 100%; }
+        .stat-value { font-size: 36px; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-label { font-size: 14px; color: #6c757d; margin-top: 8px; font-weight: 500; }
+        
+        .badge { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .badge-new { background: linear-gradient(135deg, #ffd93d 0%, #ffb800 100%); color: #000; }
+        .badge-preparing { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .badge-ready { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .badge-completed { background: #e9ecef; color: #495057; }
+        .badge-cancelled { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); color: white; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🍕 Jafood - Админ-панель</h1>
+    <!-- Экран авторизации -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-card">
+            <h1>🔐 Админ-панель</h1>
+            <p>Войдите через Telegram для доступа к панели управления</p>
+            <button class="telegram-login" onclick="loginWithTelegram()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.781-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.14.121.098.155.23.171.324.016.094.036.308.02.475z"/>
+                </svg>
+                Войти через Telegram
+            </button>
+        </div>
     </div>
 
-    <div class="container">
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('products')">Товары</button>
-            <button class="tab" onclick="showTab('categories')">Категории</button>
-            <button class="tab" onclick="showTab('orders')">Заказы</button>
-        </div>
-
-        <!-- Товары -->
-        <div class="section active" id="products-section">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>Товары</h2>
-                    <button class="btn" onclick="openProductModal()">+ Добавить товар</button>
-                </div>
-                <table id="products-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Название</th>
-                            <th>Категория</th>
-                            <th>Цена</th>
-                            <th>Описание</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+    <!-- Основной интерфейс -->
+    <div class="admin-container" id="adminContainer">
+        <div class="header">
+            <h1>🍔 Jafood Admin</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar"></div>
+                <span id="userName"></span>
+                <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
         </div>
 
-        <!-- Категории -->
-        <div class="section" id="categories-section">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>Категории</h2>
-                    <button class="btn" onclick="openCategoryModal()">+ Добавить категорию</button>
-                </div>
-                <table id="categories-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+        <div class="container">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('stats')">📊 Статистика</button>
+                <button class="tab" onclick="switchTab('products')">🍔 Товары</button>
+                <button class="tab" onclick="switchTab('categories')">📁 Категории</button>
+                <button class="tab" onclick="switchTab('orders')">📋 Заказы</button>
             </div>
-        </div>
 
-        <!-- Заказы -->
-        <div class="section" id="orders-section">
-            <div class="stats" id="stats"></div>
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">Заказы</h2>
-                <table id="orders-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Дата</th>
-                            <th>Клиент</th>
-                            <th>Сумма</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <!-- Вкладка Статистика -->
+            <div class="tab-content active" id="stats-content">
+                <div class="stats" id="statsCards"></div>
+            </div>
+
+            <!-- Вкладка Товары -->
+            <div class="tab-content" id="products-content">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>Список товаров</h3>
+                        <button class="btn" onclick="openProductModal()">+ Добавить товар</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Категория</th>
+                                    <th>Цена</th>
+                                    <th>Описание</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Категории -->
+            <div class="tab-content" id="categories-content">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>Список категорий</h3>
+                        <button class="btn" onclick="openCategoryModal()">+ Добавить категорию</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Заказы -->
+            <div class="tab-content" id="orders-content">
+                <div class="card">
+                    <h3>Все заказы</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Пользователь</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Модалка товара -->
-    <div class="modal" id="product-modal">
+    <div class="modal" id="productModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="product-modal-title">Добавить товар</h3>
-                <span class="close" onclick="closeModal('product-modal')">&times;</span>
+                <h3 class="modal-title" id="productModalTitle">Добавить товар</h3>
+                <span class="close" onclick="closeModal('productModal')">&times;</span>
             </div>
-            <form id="product-form">
-                <input type="hidden" id="product-id">
+            <form id="productForm">
+                <input type="hidden" id="productId">
                 <div class="form-group">
                     <label class="form-label">Название</label>
-                    <input type="text" class="form-input" id="product-name" required>
+                    <input type="text" class="form-input" id="productName" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Категория</label>
-                    <select class="form-input" id="product-category" required></select>
+                    <select class="form-input" id="productCategory" required></select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Цена (₽)</label>
-                    <input type="number" class="form-input" id="product-price" step="0.01" required>
+                    <input type="number" class="form-input" id="productPrice" step="0.01" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Описание</label>
-                    <textarea class="form-input" id="product-description" rows="3"></textarea>
+                    <textarea class="form-input" id="productDescription" rows="3"></textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">URL изображения</label>
-                    <input type="text" class="form-input" id="product-image">
+                    <input type="text" class="form-input" id="productImage">
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Сохранить</button>
             </form>
@@ -163,17 +232,17 @@
     </div>
 
     <!-- Модалка категории -->
-    <div class="modal" id="category-modal">
+    <div class="modal" id="categoryModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="category-modal-title">Добавить категорию</h3>
-                <span class="close" onclick="closeModal('category-modal')">&times;</span>
+                <h3 class="modal-title" id="categoryModalTitle">Добавить категорию</h3>
+                <span class="close" onclick="closeModal('categoryModal')">&times;</span>
             </div>
-            <form id="category-form">
-                <input type="hidden" id="category-id">
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId">
                 <div class="form-group">
                     <label class="form-label">Название</label>
-                    <input type="text" class="form-input" id="category-name" required>
+                    <input type="text" class="form-input" id="categoryName" required>
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Сохранить</button>
             </form>
@@ -181,206 +250,339 @@
     </div>
 
     <script>
-        const API_BASE = window.location.origin;
+        const API_BASE = '/api/admin';
+        let currentUser = null;
         let categories = [];
         let products = [];
         let orders = [];
 
-        // Загрузка данных
+        // Проверка авторизации при загрузке
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            const user = localStorage.getItem('admin_user');
+            
+            if (token && user) {
+                currentUser = JSON.parse(user);
+                showAdminPanel();
+            } else {
+                showAuthScreen();
+            }
+        }
+
+        function showAuthScreen() {
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('adminContainer').style.display = 'none';
+        }
+
+        function showAdminPanel() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('adminContainer').style.display = 'block';
+            
+            // Показываем инфо о пользователе
+            const initials = currentUser.first_name.charAt(0) + (currentUser.last_name ? currentUser.last_name.charAt(0) : '');
+            document.getElementById('userAvatar').textContent = initials;
+            document.getElementById('userName').textContent = currentUser.first_name;
+            
+            loadData();
+        }
+
+        function loginWithTelegram() {
+            // Используем Telegram WebApp для авторизации
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                
+                const user = tg.initDataUnsafe.user;
+                if (user) {
+                    authenticateUser(user, tg.initData);
+                } else {
+                    alert('Откройте админ-панель через бота @jafood_bot');
+                }
+            } else {
+                // Fallback для тестирования вне Telegram
+                const testUser = prompt('Введите ваш Telegram ID для входа:');
+                if (testUser) {
+                    fetch('/api/admin/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: parseInt(testUser) })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            currentUser = data.user;
+                            localStorage.setItem('admin_token', data.token);
+                            localStorage.setItem('admin_user', JSON.stringify(data.user));
+                            showAdminPanel();
+                        } else {
+                            alert('Доступ запрещён! Вы не являетесь администратором.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Auth error:', err);
+                        alert('Ошибка авторизации');
+                    });
+                }
+            }
+        }
+
+        function authenticateUser(user, initData) {
+            fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    user_id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    username: user.username,
+                    init_data: initData
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('admin_token', data.token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.user));
+                    showAdminPanel();
+                } else {
+                    alert('❌ Доступ запрещён!\n\nВы не являетесь администратором этого бота.');
+                }
+            })
+            .catch(err => {
+                console.error('Auth error:', err);
+                alert('Ошибка авторизации. Попробуйте снова.');
+            });
+        }
+
+        function logout() {
+            if (confirm('Выйти из админ-панели?')) {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_user');
+                currentUser = null;
+                showAuthScreen();
+            }
+        }
+
+        // Добавляем токен ко всем запросам
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                showAuthScreen();
+                throw new Error('Not authenticated');
+            }
+            
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+            
+            const response = await fetch(url, options);
+            
+            if (response.status === 401 || response.status === 403) {
+                alert('Сессия истекла. Войдите снова.');
+                logout();
+                throw new Error('Unauthorized');
+            }
+            
+            return response;
+        }
+
+        // Переключение вкладок
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-content`).classList.add('active');
+        }
+
+        // Загрузка всех данных
         async function loadData() {
             await loadCategories();
             await loadProducts();
             await loadOrders();
+            await loadStats();
         }
 
-        async function loadCategories() {
-            const res = await fetch(API_BASE + '/api/categories');
-            categories = await res.json();
-            renderCategories();
-            updateCategorySelect();
+        // Загрузка статистики
+        async function loadStats() {
+            try {
+                const res = await authFetch(`${API_BASE}/orders`);
+                const orders = await res.json();
+
+                const today = new Date().toDateString();
+                const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === today);
+                const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total_price), 0);
+                const todayRevenue = todayOrders.reduce((sum, o) => sum + parseFloat(o.total_price), 0);
+
+                document.getElementById('statsCards').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${orders.length}</div>
+                        <div class="stat-label">Всего заказов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${todayOrders.length}</div>
+                        <div class="stat-label">Заказов сегодня</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalRevenue.toFixed(0)} ₽</div>
+                        <div class="stat-label">Общая выручка</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${todayRevenue.toFixed(0)} ₽</div>
+                        <div class="stat-label">Выручка сегодня</div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
         }
 
+        // Загрузка товаров
         async function loadProducts() {
-            const res = await fetch(API_BASE + '/api/products');
-            products = await res.json();
-            renderProducts();
-        }
+            try {
+                const res = await authFetch('/api/products');
+                products = await res.json();
 
-        async function loadOrders() {
-            const res = await fetch(API_BASE + '/api/admin/orders');
-            orders = await res.json();
-            renderOrders();
-            renderStats();
-        }
-
-        function renderCategories() {
-            const tbody = document.querySelector('#categories-table tbody');
-            tbody.innerHTML = categories.map(c => `
-                <tr>
-                    <td>${c.id}</td>
-                    <td>${c.title}</td>
-                    <td>
-                        <button class="btn btn-sm" onclick="editCategory(${c.id})">Изменить</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})">Удалить</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderProducts() {
-            const tbody = document.querySelector('#products-table tbody');
-            tbody.innerHTML = products.map(p => {
-                const cat = categories.find(c => c.id === p.category_id);
-                return `
+                const tbody = document.getElementById('productsTable');
+                tbody.innerHTML = products.map(p => `
                     <tr>
                         <td>${p.id}</td>
                         <td>${p.name}</td>
-                        <td>${cat ? cat.title : '-'}</td>
-                        <td>${p.price} ₽</td>
-                        <td>${p.description || '-'}</td>
+                        <td>${categories.find(c => c.id === p.category_id)?.name || ''}</td>
+                        <td>${parseFloat(p.price).toFixed(0)} ₽</td>
+                        <td>${p.description || '—'}</td>
                         <td>
-                            <button class="btn btn-sm" onclick="editProduct(${p.id})">Изменить</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Удалить</button>
+                            <button class="btn btn-sm btn-success" onclick="editProduct(${p.id})">✏️</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>
                         </td>
                     </tr>
-                `;
-            }).join('');
-        }
-
-        function renderOrders() {
-            const tbody = document.querySelector('#orders-table tbody');
-            tbody.innerHTML = orders.map(o => `
-                <tr>
-                    <td>#${o.id}</td>
-                    <td>${new Date(o.created_at).toLocaleString('ru')}</td>
-                    <td>${o.user_id}</td>
-                    <td>${o.total_price} ₽</td>
-                    <td><span style="padding: 4px 8px; background: #${o.status === 'new' ? 'ffc107' : o.status === 'ready' ? '28a745' : 'dc3545'}; color: white; border-radius: 4px; font-size: 12px;">${o.status}</span></td>
-                    <td>
-                        <select onchange="changeOrderStatus(${o.id}, this.value)" style="padding: 6px; border-radius: 4px;">
-                            <option value="">Изменить статус</option>
-                            <option value="new">Новый</option>
-                            <option value="preparing">Готовится</option>
-                            <option value="ready">Готов</option>
-                            <option value="delivering">В пути</option>
-                            <option value="completed">Завершен</option>
-                            <option value="cancelled">Отменен</option>
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderStats() {
-            const total = orders.reduce((sum, o) => sum + (o.total_price || 0), 0);
-            const today = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-            const todayTotal = today.reduce((sum, o) => sum + (o.total_price || 0), 0);
-            
-            document.getElementById('stats').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${orders.length}</div>
-                    <div class="stat-label">Всего заказов</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${today.length}</div>
-                    <div class="stat-label">Заказов сегодня</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${total.toFixed(0)} ₽</div>
-                    <div class="stat-label">Общая сумма</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${todayTotal.toFixed(0)} ₽</div>
-                    <div class="stat-label">Сумма за сегодня</div>
-                </div>
-            `;
-        }
-
-        function updateCategorySelect() {
-            const select = document.getElementById('product-category');
-            select.innerHTML = categories.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
-        }
-
-        // Табы
-        function showTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(tab + '-section').classList.add('active');
-        }
-
-        // Модалки
-        function openModal(id) {
-            document.getElementById(id).classList.add('show');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-        }
-
-        // Категории
-        function openCategoryModal(id = null) {
-            if (id) {
-                const cat = categories.find(c => c.id === id);
-                document.getElementById('category-id').value = cat.id;
-                document.getElementById('category-name').value = cat.title;
-                document.getElementById('category-modal-title').textContent = 'Изменить категорию';
-            } else {
-                document.getElementById('category-form').reset();
-                document.getElementById('category-modal-title').textContent = 'Добавить категорию';
+                `).join('');
+            } catch (err) {
+                console.error('Error loading products:', err);
             }
-            openModal('category-modal');
         }
 
-        function editCategory(id) {
-            openCategoryModal(id);
+        // Загрузка категорий
+        async function loadCategories() {
+            try {
+                const res = await authFetch('/api/categories');
+                categories = await res.json();
+
+                // Обновляем таблицу
+                const tbody = document.getElementById('categoriesTable');
+                tbody.innerHTML = categories.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.name}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="editCategory(${c.id})">✏️</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Обновляем селектор в форме товара
+                const select = document.getElementById('productCategory');
+                select.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (err) {
+                console.error('Error loading categories:', err);
+            }
         }
 
-        async function deleteCategory(id) {
-            if (!confirm('Удалить категорию?')) return;
-            await fetch(API_BASE + '/api/admin/category/' + id, { method: 'DELETE' });
-            await loadCategories();
+        // Загрузка заказов
+        async function loadOrders() {
+            try {
+                const res = await authFetch(`${API_BASE}/orders`);
+                orders = await res.json();
+
+                const statusBadges = {
+                    'new': 'badge-new',
+                    'preparing': 'badge-preparing',
+                    'ready': 'badge-ready',
+                    'delivering': 'badge-preparing',
+                    'completed': 'badge-completed',
+                    'cancelled': 'badge-cancelled'
+                };
+
+                const statusNames = {
+                    'new': 'Новый',
+                    'preparing': 'Готовится',
+                    'ready': 'Готов',
+                    'delivering': 'Доставляется',
+                    'completed': 'Завершён',
+                    'cancelled': 'Отменён'
+                };
+
+                const tbody = document.getElementById('ordersTable');
+                tbody.innerHTML = orders.slice().reverse().map(o => `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.user_id}</td>
+                        <td>${parseFloat(o.total_price).toFixed(0)} ₽</td>
+                        <td><span class="badge ${statusBadges[o.status]}">${statusNames[o.status]}</span></td>
+                        <td>${new Date(o.created_at).toLocaleString('ru')}</td>
+                        <td>
+                            <select onchange="changeOrderStatus(${o.id}, this.value)" class="form-input" style="padding: 6px 10px; width: auto;">
+                                <option value="">Изменить статус</option>
+                                <option value="preparing">Готовится</option>
+                                <option value="ready">Готов</option>
+                                <option value="delivering">Доставляется</option>
+                                <option value="completed">Завершён</option>
+                                <option value="cancelled">Отменён</option>
+                            </select>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading orders:', err);
+            }
         }
 
-        document.getElementById('category-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('category-id').value;
-            const data = { title: document.getElementById('category-name').value };
+        // Изменение статуса заказа
+        async function changeOrderStatus(orderId, newStatus) {
+            if (!newStatus) return;
             
-            if (id) {
-                await fetch(API_BASE + '/api/admin/category/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            } else {
-                await fetch(API_BASE + '/api/admin/category', {
+            try {
+                const res = await authFetch(`${API_BASE}/order/${orderId}/status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ status: newStatus })
                 });
-            }
-            
-            closeModal('category-modal');
-            await loadCategories();
-        };
 
-        // Товары
+                if (res.ok) {
+                    await loadOrders();
+                    await loadStats();
+                } else {
+                    alert('Ошибка при изменении статуса');
+                }
+            } catch (err) {
+                console.error('Error changing status:', err);
+                alert('Ошибка при изменении статуса');
+            }
+        }
+
+        // Модалки товара
         function openProductModal(id = null) {
             if (id) {
-                const prod = products.find(p => p.id === id);
-                document.getElementById('product-id').value = prod.id;
-                document.getElementById('product-name').value = prod.name;
-                document.getElementById('product-category').value = prod.category_id;
-                document.getElementById('product-price').value = prod.price;
-                document.getElementById('product-description').value = prod.description || '';
-                document.getElementById('product-image').value = prod.image_url || '';
-                document.getElementById('product-modal-title').textContent = 'Изменить товар';
+                const product = products.find(p => p.id === id);
+                document.getElementById('productModalTitle').textContent = 'Редактировать товар';
+                document.getElementById('productId').value = product.id;
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productCategory').value = product.category_id;
+                document.getElementById('productPrice').value = product.price;
+                document.getElementById('productDescription').value = product.description || '';
+                document.getElementById('productImage').value = product.image_url || '';
             } else {
-                document.getElementById('product-form').reset();
-                document.getElementById('product-modal-title').textContent = 'Добавить товар';
+                document.getElementById('productModalTitle').textContent = 'Добавить товар';
+                document.getElementById('productForm').reset();
+                document.getElementById('productId').value = '';
             }
-            openModal('product-modal');
+            document.getElementById('productModal').classList.add('show');
         }
 
         function editProduct(id) {
@@ -389,52 +591,115 @@
 
         async function deleteProduct(id) {
             if (!confirm('Удалить товар?')) return;
-            await fetch(API_BASE + '/api/admin/product/' + id, { method: 'DELETE' });
-            await loadProducts();
-        }
 
-        document.getElementById('product-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('product-id').value;
-            const data = {
-                name: document.getElementById('product-name').value,
-                category_id: parseInt(document.getElementById('product-category').value),
-                price: parseFloat(document.getElementById('product-price').value),
-                description: document.getElementById('product-description').value,
-                image_url: document.getElementById('product-image').value
-            };
-            
-            if (id) {
-                await fetch(API_BASE + '/api/admin/product/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            } else {
-                await fetch(API_BASE + '/api/admin/product', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+            try {
+                await authFetch(`${API_BASE}/product/${id}`, { method: 'DELETE' });
+                await loadProducts();
+            } catch (err) {
+                console.error('Error deleting product:', err);
+                alert('Ошибка при удалении товара');
             }
-            
-            closeModal('product-modal');
-            await loadProducts();
-        };
-
-        // Заказы
-        async function changeOrderStatus(orderId, status) {
-            if (!status) return;
-            await fetch(API_BASE + '/api/admin/order/' + orderId + '/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
-            await loadOrders();
         }
 
-        // Инициализация
-        loadData();
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('productId').value;
+            const data = {
+                name: document.getElementById('productName').value,
+                category_id: parseInt(document.getElementById('productCategory').value),
+                price: parseFloat(document.getElementById('productPrice').value),
+                description: document.getElementById('productDescription').value,
+                image_url: document.getElementById('productImage').value
+            };
+
+            try {
+                const url = id ? `${API_BASE}/product/${id}` : `${API_BASE}/product`;
+                const method = id ? 'PUT' : 'POST';
+
+                await authFetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                closeModal('productModal');
+                await loadProducts();
+            } catch (err) {
+                console.error('Error saving product:', err);
+                alert('Ошибка при сохранении товара');
+            }
+        });
+
+        // Модалки категории
+        function openCategoryModal(id = null) {
+            if (id) {
+                const category = categories.find(c => c.id === id);
+                document.getElementById('categoryModalTitle').textContent = 'Редактировать категорию';
+                document.getElementById('categoryId').value = category.id;
+                document.getElementById('categoryName').value = category.name;
+            } else {
+                document.getElementById('categoryModalTitle').textContent = 'Добавить категорию';
+                document.getElementById('categoryForm').reset();
+                document.getElementById('categoryId').value = '';
+            }
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        function editCategory(id) {
+            openCategoryModal(id);
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Удалить категорию? Все товары этой категории также будут удалены.')) return;
+
+            try {
+                await authFetch(`${API_BASE}/category/${id}`, { method: 'DELETE' });
+                await loadCategories();
+                await loadProducts();
+            } catch (err) {
+                console.error('Error deleting category:', err);
+                alert('Ошибка при удалении категории');
+            }
+        }
+
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('categoryId').value;
+            const data = {
+                name: document.getElementById('categoryName').value
+            };
+
+            try {
+                const url = id ? `${API_BASE}/category/${id}` : `${API_BASE}/category`;
+                const method = id ? 'PUT' : 'POST';
+
+                await authFetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                closeModal('categoryModal');
+                await loadCategories();
+                await loadProducts();
+            } catch (err) {
+                console.error('Error saving category:', err);
+                alert('Ошибка при сохранении категории');
+            }
+        });
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // Закрытие модалки при клике вне её
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
     </script>
 </body>
 </html>
