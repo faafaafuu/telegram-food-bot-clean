@@ -114,7 +114,10 @@
         </div>
         <div class="form-group" id="addressGroup">
             <label class="form-label">Адрес доставки</label>
-            <input type="text" class="form-input" id="addressInput" placeholder="Улица, дом, квартира">
+            <input type="text" class="form-input" id="addressInput" placeholder="Улица, дом, квартира" list="addressSuggestions" autocomplete="off">
+            <datalist id="addressSuggestions">
+                <!-- Популярные улицы будут добавляться динамически -->
+            </datalist>
         </div>
         <div class="form-group">
             <label class="form-label">Телефон</label>

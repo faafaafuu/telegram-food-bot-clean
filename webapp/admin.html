@@ -92,6 +92,31 @@
         .badge-completed { background: #e9ecef; color: #495057; }
         .badge-cancelled { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); color: white; }
         
+        /* Бейдж новых заказов */
+        .new-orders-badge { 
+            position: absolute; 
+            top: -8px; 
+            right: -8px; 
+            background: #ff0000; 
+            color: white; 
+            border-radius: 50%; 
+            width: 20px; 
+            height: 20px; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 11px; 
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255,0,0,0.4);
+            animation: pulse 2s infinite;
+        }
+        .new-orders-badge.show { display: flex; }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
         /* Мобильная адаптация */
         @media (max-width: 768px) {
             .container { padding: 10px; }
@@ -179,7 +204,10 @@
                 <button class="tab active" onclick="switchTab('stats')">📊 Статистика</button>
                 <button class="tab" onclick="switchTab('products')">🍔 Товары</button>
                 <button class="tab" onclick="switchTab('categories')">📁 Категории</button>
-                <button class="tab" onclick="switchTab('orders')">📋 Заказы</button>
+                <button class="tab" onclick="switchTab('orders')" style="position: relative;">
+                    📋 Заказы
+                    <span class="new-orders-badge" id="newOrdersBadge">0</span>
+                </button>
             </div>
 
             <!-- Вкладка Статистика -->
@@ -460,6 +488,12 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById(`${tab}-content`).classList.add('active');
+            
+            // При переходе на вкладку заказов - сбрасываем счётчик новых
+            if (tab === 'orders') {
+                document.getElementById('newOrdersBadge').classList.remove('show');
+                document.getElementById('newOrdersBadge').textContent = '0';
+            }
         }
 
         // Загрузка всех данных
@@ -488,12 +522,28 @@
                         showOrderNotification(latestOrder);
                         await loadOrders(); // Обновляем список
                         await loadStats(); // Обновляем статистику
+                        
+                        // Обновляем бейдж новых заказов
+                        updateNewOrdersBadge();
                     }
                     
                     lastOrderId = latestOrder.id;
                 }
             } catch (err) {
                 console.error('Error checking new orders:', err);
+            }
+        }
+        
+        // Обновление бейджа новых заказов
+        function updateNewOrdersBadge() {
+            const newOrdersCount = orders.filter(o => o.status === 'new').length;
+            const badge = document.getElementById('newOrdersBadge');
+            
+            if (newOrdersCount > 0) {
+                badge.textContent = newOrdersCount;
+                badge.classList.add('show');
+            } else {
+                badge.classList.remove('show');
             }
         }
         
@@ -683,6 +733,9 @@
                     </tr>
                 `;
                 }).join('');
+                
+                // Обновляем бейдж новых заказов
+                updateNewOrdersBadge();
             } catch (err) {
                 console.error('Error loading orders:', err);
             }
