@@ -1,8 +1,9 @@
 from aiogram import Router
-from aiogram.types import Message, WebAppInfo
+from aiogram.types import Message, WebAppInfo, CallbackQuery
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import os
+import httpx
 
 import config
 from bot.services.db import AsyncSessionLocal, Product, Category
@@ -37,6 +38,73 @@ async def cmd_admin(message: Message):
         "Нажмите кнопку ниже для входа:",
         reply_markup=builder.as_markup()
     )
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith('confirm_login:'))
+async def callback_confirm_login(callback: CallbackQuery):
+    """Подтверждение входа в админ-панель"""
+    if callback.from_user.id not in config.ADMIN_IDS:
+        await callback.answer("❌ Недостаточно прав", show_alert=True)
+        return
+    
+    request_id = callback.data.split(':')[1]
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BASE_URL}/api/admin/confirm-login/{request_id}",
+                json={
+                    "action": "confirm",
+                    "user_data": {
+                        "id": callback.from_user.id,
+                        "first_name": callback.from_user.first_name,
+                        "last_name": callback.from_user.last_name or "",
+                        "username": callback.from_user.username or ""
+                    }
+                }
+            )
+        
+        if response.status_code == 200:
+            await callback.message.edit_text(
+                "✅ Вход подтверждён!\n\n"
+                "Пользователь может продолжить работу в админ-панели."
+            )
+            await callback.answer("✅ Доступ разрешён")
+        else:
+            await callback.answer("❌ Ошибка подтверждения", show_alert=True)
+    except Exception as e:
+        print(f"Error confirming login: {e}")
+        await callback.answer("❌ Ошибка сервера", show_alert=True)
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith('reject_login:'))
+async def callback_reject_login(callback: CallbackQuery):
+    """Отклонение входа в админ-панель"""
+    if callback.from_user.id not in config.ADMIN_IDS:
+        await callback.answer("❌ Недостаточно прав", show_alert=True)
+        return
+    
+    request_id = callback.data.split(':')[1]
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BASE_URL}/api/admin/confirm-login/{request_id}",
+                json={"action": "reject"}
+            )
+        
+        if response.status_code == 200:
+            await callback.message.edit_text(
+                "❌ Вход отклонён!\n\n"
+                "Попытка входа была заблокирована."
+            )
+            await callback.answer("❌ Доступ запрещён")
+        else:
+            await callback.answer("❌ Ошибка", show_alert=True)
+    except Exception as e:
+        print(f"Error rejecting login: {e}")
+        await callback.answer("❌ Ошибка сервера", show_alert=True)
+
 
 @router.message(Command('addproduct'))
 async def cmd_addproduct(message: Message):

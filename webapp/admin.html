@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель - Jafood</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="googlebot" content="noindex, nofollow">
+    <title>Вход - Jafood</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,12 +13,14 @@
         
         /* Экран авторизации */
         .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .auth-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; }
+        .auth-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; position: relative; z-index: 10; }
         .auth-card h1 { font-size: 28px; margin-bottom: 10px; color: #1a1a1a; }
         .auth-card p { color: #666; margin-bottom: 30px; }
-        .telegram-login { background: #0088cc; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s; }
+        .auth-card input { pointer-events: auto !important; user-select: text !important; }
+        .telegram-login { background: #0088cc; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s; justify-content: center; }
         .telegram-login:hover { background: #007ab8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,136,204,0.4); }
         .telegram-login:active { transform: translateY(0); }
+        .telegram-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
         /* Основной интерфейс */
         .admin-container { display: none; }
@@ -60,7 +63,7 @@
         
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #495057; }
-        .form-input, select { width: 100%; padding: 10px 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 13px; font-family: inherit; transition: all 0.3s; background: white; }
+        .form-input, select { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; font-family: inherit; transition: all 0.3s; background: white; }
         .form-input:focus, select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
         textarea.form-input { resize: vertical; min-height: 70px; }
         
@@ -74,6 +77,8 @@
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%); backdrop-filter: blur(10px); padding: 20px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); position: relative; overflow: hidden; }
@@ -126,33 +131,33 @@
             <h1>🔐 Админ-панель</h1>
             <p id="authDescription">Выберите способ авторизации</p>
             
-            <!-- Выбор метода авторизации -->
-            <div id="authMethodSelect">
-                <button class="telegram-login" onclick="selectAuthMethod('telegram')" style="width: 100%; margin-bottom: 10px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.781-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.14.121.098.155.23.171.324.016.094.036.308.02.475z"/>
-                    </svg>
-                    Войти через Telegram
-                </button>
-                <button class="telegram-login" onclick="selectAuthMethod('password')" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    🔑 Логин и пароль
-                </button>
-            </div>
-            
-            <!-- Форма логин/пароль -->
-            <div id="passwordAuthForm" style="display: none;">
-                <form onsubmit="loginWithPassword(event)">
+            <!-- Форма входа -->
+            <div id="loginForm">
+                <form id="adminLoginForm">
                     <div style="margin-bottom: 15px;">
-                        <input type="text" id="adminUsername" class="form-input" placeholder="Логин" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px;">
+                        <input 
+                            type="text" 
+                            id="adminUsername" 
+                            name="username"
+                            class="form-input" 
+                            placeholder="Логин" 
+                            required 
+                            autocomplete="username"
+                            tabindex="1">
                     </div>
                     <div style="margin-bottom: 20px;">
-                        <input type="password" id="adminPassword" class="form-input" placeholder="Пароль" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px;">
+                        <input 
+                            type="password" 
+                            id="adminPassword" 
+                            name="password"
+                            class="form-input" 
+                            placeholder="Пароль" 
+                            required 
+                            autocomplete="current-password"
+                            tabindex="2">
                     </div>
-                    <button type="submit" class="telegram-login" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <button type="submit" id="loginBtn" class="telegram-login" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" tabindex="3">
                         Войти
-                    </button>
-                    <button type="button" onclick="backToAuthSelect()" style="width: 100%; margin-top: 10px; background: #f1f3f5; color: #666; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
-                        Назад
                     </button>
                 </form>
             </div>
@@ -233,15 +238,16 @@
             <!-- Вкладка Заказы -->
             <div class="tab-content" id="orders-content">
                 <div class="card">
-                    <h3>Все заказы</h3>
+                    <h3>Все заказы (клик для подробностей)</h3>
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
                                 <tr>
                                     <th class="hide-mobile">ID</th>
-                                    <th class="hide-mobile">Пользователь</th>
+                                    <th class="hide-mobile">Клиент</th>
                                     <th>Сумма</th>
                                     <th>Статус</th>
+                                    <th class="hide-mobile">Товары</th>
                                     <th class="hide-mobile">Дата</th>
                                     <th>Действия</th>
                                 </tr>
@@ -307,15 +313,25 @@
     </div>
 
     <script>
+        // API Base URL
         const API_BASE = '/api/admin';
+        
         let currentUser = null;
         let categories = [];
         let products = [];
         let orders = [];
+        let lastOrderId = 0;
+        let orderCheckInterval = null;
 
         // Проверка авторизации при загрузке
         window.addEventListener('DOMContentLoaded', () => {
             checkAuth();
+            
+            // Привязываем обработчик формы
+            const loginForm = document.getElementById('adminLoginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', requestLogin);
+            }
         });
 
         function checkAuth() {
@@ -333,41 +349,25 @@
         function showAuthScreen() {
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('adminContainer').style.display = 'none';
-            document.getElementById('authMethodSelect').style.display = 'block';
-            document.getElementById('passwordAuthForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('authDescription').textContent = 'Введите логин и пароль';
         }
 
-        function selectAuthMethod(method) {
-            if (method === 'telegram') {
-                loginWithTelegram();
-            } else if (method === 'password') {
-                document.getElementById('authMethodSelect').style.display = 'none';
-                document.getElementById('passwordAuthForm').style.display = 'block';
-                document.getElementById('authDescription').textContent = 'Введите логин и пароль';
-            }
-        }
-
-        function backToAuthSelect() {
-            document.getElementById('authMethodSelect').style.display = 'block';
-            document.getElementById('passwordAuthForm').style.display = 'none';
-            document.getElementById('authDescription').textContent = 'Выберите способ авторизации';
-        }
-
-        async function loginWithPassword(event) {
+        async function requestLogin(event) {
             event.preventDefault();
             
             const username = document.getElementById('adminUsername').value;
             const password = document.getElementById('adminPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Вход...';
             
             try {
-                const response = await fetch('/api/admin/auth', {
+                const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        auth_type: 'password',
-                        username: username,
-                        password: password
-                    })
+                    body: JSON.stringify({ username, password })
                 });
                 
                 const data = await response.json();
@@ -378,12 +378,24 @@
                     localStorage.setItem('admin_user', JSON.stringify(data.user));
                     showAdminPanel();
                 } else {
-                    alert('❌ Неверный логин или пароль');
+                    alert('❌ ' + (data.detail || 'Неверный логин или пароль'));
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Войти';
                 }
             } catch (err) {
-                console.error('Auth error:', err);
-                alert('❌ Ошибка авторизации. Проверьте логин и пароль.');
+                console.error('Login error:', err);
+                alert('❌ Ошибка входа. Проверьте логин и пароль.');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Войти';
             }
+        }
+
+        function cancelLogin() {
+            clearInterval(orderCheckInterval);
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginBtn').textContent = 'Войти';
         }
 
         function showAdminPanel() {
@@ -396,55 +408,6 @@
             document.getElementById('userName').textContent = currentUser.first_name;
             
             loadData();
-        }
-
-        function loginWithTelegram() {
-            // Используем Telegram WebApp для авторизации
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.ready();
-                
-                const user = tg.initDataUnsafe.user;
-                if (user) {
-                    authenticateUser(user, tg.initData);
-                } else {
-                    alert('Откройте админ-панель через бота @jafood_bot');
-                }
-            } else {
-                // Если открыто не из Telegram, предлагаем ввести ID вручную
-                alert('Для авторизации через Telegram откройте админ-панель из бота @jafood_bot или используйте логин/пароль');
-                backToAuthSelect();
-            }
-        }
-
-        function authenticateUser(user, initData) {
-            fetch('/api/admin/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    auth_type: 'telegram',
-                    user_id: user.id,
-                    first_name: user.first_name,
-                    last_name: user.last_name,
-                    username: user.username,
-                    init_data: initData
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentUser = data.user;
-                    localStorage.setItem('admin_token', data.token);
-                    localStorage.setItem('admin_user', JSON.stringify(data.user));
-                    showAdminPanel();
-                } else {
-                    alert('❌ Доступ запрещён!\n\nВы не являетесь администратором этого бота.');
-                }
-            })
-            .catch(err => {
-                console.error('Auth error:', err);
-                alert('Ошибка авторизации. Попробуйте снова.');
-            });
         }
 
         function logout() {
@@ -494,6 +457,77 @@
             await loadProducts();
             await loadOrders();
             await loadStats();
+            
+            // Запускаем автопроверку новых заказов каждые 10 секунд
+            if (orderCheckInterval) clearInterval(orderCheckInterval);
+            orderCheckInterval = setInterval(checkNewOrders, 10000);
+        }
+        
+        // Проверка новых заказов
+        async function checkNewOrders() {
+            try {
+                const res = await authFetch(`${API_BASE}/orders`);
+                const newOrders = await res.json();
+                
+                if (newOrders.length > 0) {
+                    const latestOrder = newOrders[newOrders.length - 1];
+                    
+                    if (lastOrderId && latestOrder.id > lastOrderId) {
+                        // Новый заказ!
+                        showOrderNotification(latestOrder);
+                        await loadOrders(); // Обновляем список
+                        await loadStats(); // Обновляем статистику
+                    }
+                    
+                    lastOrderId = latestOrder.id;
+                }
+            } catch (err) {
+                console.error('Error checking new orders:', err);
+            }
+        }
+        
+        // Показываем уведомление о новом заказе
+        function showOrderNotification(order) {
+            const items = JSON.parse(order.items_json);
+            const itemsList = items.map(i => `${i.name} x${i.qty}`).join(', ');
+            
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <h3 style="margin: 0; font-size: 18px;">🔔 Новый заказ #${order.id}</h3>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px;">×</button>
+                </div>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>💰 Сумма:</strong> ${order.total_price}₽</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>📦 Товары:</strong> ${itemsList}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>📍 Адрес:</strong> ${order.address}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>📞 Телефон:</strong> ${order.phone}</p>
+                <button onclick="switchTab('orders'); this.parentElement.remove();" style="margin-top: 10px; width: 100%; background: white; color: #667eea; border: none; padding: 8px; border-radius: 8px; font-weight: 600; cursor: pointer;">Перейти к заказам</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Автоматически убираем через 15 секунд
+            setTimeout(() => notification.remove(), 15000);
+            
+            // Проигрываем звук (если браузер позволяет)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE=');
+                audio.play().catch(() => {});
+            } catch(e) {}
         }
 
         // Загрузка статистики
@@ -607,28 +641,99 @@
                 };
 
                 const tbody = document.getElementById('ordersTable');
-                tbody.innerHTML = orders.slice().reverse().map(o => `
-                    <tr>
-                        <td class="hide-mobile">${o.id}</td>
-                        <td class="hide-mobile">${o.user_id}</td>
-                        <td>${parseFloat(o.total_price).toFixed(0)} ₽</td>
+                tbody.innerHTML = orders.slice().reverse().map(o => {
+                    const items = JSON.parse(o.items_json || '[]');
+                    const itemsPreview = items.slice(0, 2).map(i => i.name).join(', ') + (items.length > 2 ? '...' : '');
+                    
+                    return `
+                    <tr onclick="showOrderDetails(${o.id})" style="cursor: pointer;">
+                        <td class="hide-mobile">#${o.id}</td>
+                        <td class="hide-mobile">${o.user_id || 'Гость'}</td>
+                        <td><strong>${parseFloat(o.total_price).toFixed(0)} ₽</strong></td>
                         <td><span class="badge ${statusBadges[o.status]}">${statusNames[o.status]}</span></td>
-                        <td class="hide-mobile">${new Date(o.created_at).toLocaleString('ru')}</td>
-                        <td>
-                            <select onchange="changeOrderStatus(${o.id}, this.value)" class="form-input" style="padding: 6px 10px; width: auto; min-width: 100px;">
-                                <option value="">Изменить</option>
-                                <option value="preparing">Готовится</option>
-                                <option value="ready">Готов</option>
-                                <option value="delivering">Доставляется</option>
-                                <option value="completed">Завершён</option>
-                                <option value="cancelled">Отменён</option>
+                        <td class="hide-mobile">${itemsPreview}</td>
+                        <td class="hide-mobile">${new Date(o.created_at).toLocaleString('ru', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</td>
+                        <td onclick="event.stopPropagation()">
+                            <select onchange="changeOrderStatus(${o.id}, this.value)" class="form-input" style="padding: 6px 10px; width: auto; min-width: 120px;">
+                                <option value="">Статус</option>
+                                <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Готовится</option>
+                                <option value="ready" ${o.status === 'ready' ? 'selected' : ''}>Готов</option>
+                                <option value="delivering" ${o.status === 'delivering' ? 'selected' : ''}>Доставляется</option>
+                                <option value="completed" ${o.status === 'completed' ? 'selected' : ''}>Завершён</option>
+                                <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
                             </select>
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
             } catch (err) {
                 console.error('Error loading orders:', err);
             }
+        }
+
+        // Показать детали заказа
+        function showOrderDetails(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            const items = JSON.parse(order.items_json || '[]');
+            const itemsList = items.map(i => `
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: #f8f9fa; border-radius: 6px; margin-bottom: 6px;">
+                    <span><strong>${i.name}</strong> × ${i.qty}</span>
+                    <span>${(i.price * i.qty).toFixed(0)} ₽</span>
+                </div>
+            `).join('');
+            
+            const statusNames = {
+                'new': '🆕 Новый',
+                'preparing': '👨‍🍳 Готовится',
+                'ready': '✅ Готов',
+                'delivering': '🚗 Доставляется',
+                'completed': '✔️ Завершён',
+                'cancelled': '❌ Отменён'
+            };
+            
+            const deliveryType = order.delivery_type === 'delivery' ? '🚗 Доставка' : '🏃 Самовывоз';
+            const paymentMethod = {
+                'cash': '💵 Наличные',
+                'card': '💳 Карта',
+                'online': '🌐 Онлайн'
+            }[order.payment_method] || order.payment_method;
+            
+            document.getElementById('modalTitle').textContent = `Заказ #${order.id}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="display: grid; gap: 15px;">
+                    <div>
+                        <p style="color: #666; font-size: 12px; margin-bottom: 4px;">СТАТУС</p>
+                        <p style="font-size: 16px; font-weight: 600;">${statusNames[order.status]}</p>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e9ecef; padding-top: 15px;">
+                        <p style="color: #666; font-size: 12px; margin-bottom: 8px;">СОСТАВ ЗАКАЗА</p>
+                        ${itemsList}
+                        <div style="display: flex; justify-content: space-between; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; margin-top: 8px;">
+                            <span><strong>ИТОГО:</strong></span>
+                            <span style="font-size: 18px;"><strong>${order.total_price} ₽</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e9ecef; padding-top: 15px;">
+                        <p style="color: #666; font-size: 12px; margin-bottom: 8px;">ДЕТАЛИ ДОСТАВКИ</p>
+                        <p style="margin-bottom: 6px;">📦 ${deliveryType}</p>
+                        <p style="margin-bottom: 6px;">📍 ${order.address}</p>
+                        <p style="margin-bottom: 6px;">📞 ${order.phone}</p>
+                        <p style="margin-bottom: 6px;">💰 ${paymentMethod}</p>
+                        ${order.comment ? `<p style="margin-bottom: 6px;">💬 ${order.comment}</p>` : ''}
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e9ecef; padding-top: 15px;">
+                        <p style="color: #666; font-size: 12px; margin-bottom: 4px;">СОЗДАН</p>
+                        <p>${new Date(order.created_at).toLocaleString('ru')}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('productModal').classList.add('show');
         }
 
         // Изменение статуса заказа
@@ -788,6 +893,18 @@
                 event.target.classList.remove('show');
             }
         }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            // Подключаем обработчик формы логина
+            const loginForm = document.getElementById('adminLoginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', requestLogin);
+            }
+            
+            // Проверяем авторизацию при загрузке
+            checkAuth();
+        });
     </script>
 </body>
 </html>

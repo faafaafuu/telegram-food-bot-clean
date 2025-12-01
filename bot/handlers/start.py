@@ -24,8 +24,8 @@ def get_main_menu_kb() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message):
     """Стартовое сообщение с главным меню"""
     welcome_text = (
-        f"👋 Привет, <b>{message.from_user.first_name}</b>!\n\n"
-        f"Добро пожаловать в <b>🍕 Jafood</b> — ваш любимый ресторан!\n\n"
+        f"👋 Привет, {message.from_user.first_name}!\n\n"
+        f"Добро пожаловать в 🍕 Jafood — ваш любимый ресторан!\n\n"
         f"🔸 Закажите любимые блюда\n"
         f"🔸 Доставка или самовывоз\n"
         f"🔸 Наличные, карта или онлайн-оплата\n\n"
@@ -38,7 +38,7 @@ async def cmd_start(message: Message):
 async def show_main_menu(callback: CallbackQuery):
     """Возврат в главное меню"""
     await callback.message.edit_text(
-        "🏠 <b>Главное меню</b>\n\nВыберите действие:",
+        "🏠 Главное меню\n\nВыберите действие:",
         reply_markup=get_main_menu_kb()
     )
     await callback.answer()

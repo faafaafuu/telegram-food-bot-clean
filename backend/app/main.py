@@ -29,6 +29,9 @@ BLOCK_TIME = 300  # 5 минут
 # Хранилище токенов {token: {user_id, created_at}}
 active_tokens = {}
 
+# Хранилище запросов на вход {request_id: {username, status, timestamp, user_data}}
+login_requests = {}
+
 def check_rate_limit(ip: str):
     """Проверка на брутфорс"""
     now = time.time()
@@ -122,18 +125,30 @@ async def admin_auth(request: Request, payload: dict):
     else:
         # Авторизация через Telegram
         user_id = payload.get('user_id')
-        if not user_id:
+        username = payload.get('username')
+        
+        if not user_id and not username:
             auth_attempts[client_ip].append((time.time(), False))
-            raise HTTPException(400, "Не указан user_id")
+            raise HTTPException(400, "Не указан user_id или username")
         
         # Получаем список админов из переменных окружения
         admin_ids_str = os.getenv('ADMIN_IDS', '')
         admin_ids = [int(id.strip()) for id in admin_ids_str.split(',') if id.strip()]
         
-        if not admin_ids:
+        admin_usernames_str = os.getenv('ADMIN_USERNAMES', '')
+        admin_usernames = [u.strip().lower().replace('@', '') for u in admin_usernames_str.split(',') if u.strip()]
+        
+        if not admin_ids and not admin_usernames:
             raise HTTPException(500, "Не настроены администраторы")
         
-        if user_id not in admin_ids:
+        # Проверяем по ID или username
+        is_admin = False
+        if user_id and user_id in admin_ids:
+            is_admin = True
+        elif username and username.lower().replace('@', '') in admin_usernames:
+            is_admin = True
+        
+        if not is_admin:
             auth_attempts[client_ip].append((time.time(), False))
             raise HTTPException(403, "Доступ запрещён")
         
@@ -151,6 +166,94 @@ async def admin_auth(request: Request, payload: dict):
                 'username': payload.get('username', '')
             }
         }
+
+
+@app.post("/api/admin/login")
+async def admin_login(request: Request, payload: dict):
+    """Прямая авторизация по логину/паролю без подтверждения"""
+    client_ip = request.client.host
+    check_rate_limit(client_ip)
+    
+    username = payload.get('username')
+    password = payload.get('password')
+    
+    admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+    admin_password = os.getenv('ADMIN_PASSWORD', 'admin')
+    
+    if not username or not password:
+        auth_attempts[client_ip].append((time.time(), False))
+        raise HTTPException(400, "Не указан логин или пароль")
+    
+    if username != admin_username or password != admin_password:
+        auth_attempts[client_ip].append((time.time(), False))
+        raise HTTPException(403, "Неверный логин или пароль")
+    
+    # Успешная авторизация
+    auth_attempts[client_ip].append((time.time(), True))
+    token = generate_token(0)
+    
+    return {
+        'success': True,
+        'token': token,
+        'user': {
+            'id': 0,
+            'first_name': 'Администратор',
+            'last_name': '',
+            'username': username
+        }
+    }
+
+
+@app.get("/api/admin/check-login/{request_id}")
+async def check_login(request_id: str):
+    """Проверка статуса запроса на вход"""
+    if request_id not in login_requests:
+        raise HTTPException(404, "Запрос не найден")
+    
+    req = login_requests[request_id]
+    
+    # Проверяем срок действия (5 минут)
+    if time.time() - req['timestamp'] > 300:
+        req['status'] = 'expired'
+        return {'status': 'expired'}
+    
+    if req['status'] == 'confirmed':
+        # Генерируем токен
+        token = generate_token(0)  # используем 0 для админа по логину/паролю
+        user_data = req.get('user_data') or {
+            'id': 0,
+            'first_name': 'Администратор',
+            'last_name': '',
+            'username': req['username']
+        }
+        
+        # Удаляем запрос
+        del login_requests[request_id]
+        
+        return {
+            'status': 'confirmed',
+            'token': token,
+            'user': user_data
+        }
+    
+    return {'status': req['status']}
+
+
+@app.post("/api/admin/confirm-login/{request_id}")
+async def confirm_login(request_id: str, payload: dict):
+    """Подтверждение/отклонение запроса на вход (вызывается из callback бота)"""
+    if request_id not in login_requests:
+        raise HTTPException(404, "Запрос не найден")
+    
+    action = payload.get('action')  # 'confirm' или 'reject'
+    
+    if action == 'confirm':
+        login_requests[request_id]['status'] = 'confirmed'
+        login_requests[request_id]['user_data'] = payload.get('user_data')
+    else:
+        login_requests[request_id]['status'] = 'rejected'
+    
+    return {'success': True}
 
 
 @app.get("/api/categories")
@@ -260,6 +363,8 @@ async def create_order(request: Request):
         raise HTTPException(400, f"Invalid JSON: {str(e)}")
     
     user_id = data.get('user_id')
+    username = data.get('username')
+    first_name = data.get('first_name', 'Гость')
     items = data.get('items', [])
     total_price = data.get('total_price', 0)
     address = data.get('address', '')
@@ -268,15 +373,15 @@ async def create_order(request: Request):
     payment_method = data.get('payment_method', 'cash')
     delivery_type = data.get('delivery_type', 'delivery')
     
-    # Валидация
-    if not user_id:
-        raise HTTPException(400, "user_id is required")
-    
+    # Валидация - теперь user_id необязателен
     if not items:
         raise HTTPException(400, "items are required")
     
     if not phone:
         raise HTTPException(400, "phone is required")
+    
+    # Создаём идентификатор клиента
+    customer_identifier = f"@{username}" if username else f"ID:{user_id}" if user_id else phone
     
     # Создаем заказ в БД
     from sqlalchemy import insert

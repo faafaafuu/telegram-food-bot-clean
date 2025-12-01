@@ -199,17 +199,15 @@
         <span id="cartCount">0</span>
     </div>
 
-    <!-- Нижняя панель -->
-    <div class="bottom-bar" id="bottomBar" style="display:none;">
-        <button class="btn-primary" id="bottomBtn" onclick="nextStep()">Продолжить</button>
-    </div>
+    <!-- Нижняя панель удалена - используется Telegram MainButton -->
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
         
-        const API_BASE = window.location.origin;
+        const API_BASE = 'https://mandanator.ru';
         let categories = [];
         let products = [];
         let cart = [];
@@ -353,9 +351,9 @@
             document.getElementById('backBtn').style.display = screen !== 'menu' && screen !== 'success' ? 'block' : 'none';
             
             if (screen === 'success') {
-                document.getElementById('bottomBar').style.display = 'none';
+                tg.MainButton.hide();
             } else if (screen === 'menu') {
-                document.getElementById('bottomBar').style.display = 'none';
+                tg.MainButton.hide();
             } else if (screen === 'cart') {
                 const total = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
                 updateBottomBar(`Оформить ${total} ₽`);
@@ -371,8 +369,8 @@
         }
 
         function updateBottomBar(text) {
-            document.getElementById('bottomBtn').textContent = text;
-            document.getElementById('bottomBar').style.display = 'block';
+            tg.MainButton.setText(text);
+            tg.MainButton.show();
         }
 
         function goBack() {
@@ -384,6 +382,7 @@
         }
 
         function nextStep() {
+            console.log('nextStep called, currentScreen:', currentScreen);
             if (currentScreen === 'cart') {
                 showScreen('address');
             } else if (currentScreen === 'address') {
@@ -395,6 +394,7 @@
             } else if (currentScreen === 'payment') {
                 showScreen('confirm');
             } else if (currentScreen === 'confirm') {
+                console.log('Calling submitOrder...');
                 submitOrder();
             }
         }
@@ -488,11 +488,18 @@
         }
 
         async function submitOrder() {
+            console.log('submitOrder function started');
             try {
-                document.getElementById('bottomBtn').disabled = true;
-                document.getElementById('bottomBtn').textContent = 'Отправка...';
+                tg.MainButton.showProgress();
+                tg.MainButton.disable();
                 
-                const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+                // Получаем данные пользователя из Telegram
+                const userId = tg.initDataUnsafe?.user?.id || null;
+                const username = tg.initDataUnsafe?.user?.username || null;
+                const firstName = tg.initDataUnsafe?.user?.first_name || 'Гость';
+                
+                console.log('User data:', { userId, username, firstName });
+                
                 const total = calculateTotal();
                 
                 // Очищаем телефон от форматирования для отправки
@@ -500,6 +507,8 @@
                 
                 const orderPayload = {
                     user_id: userId,
+                    username: username,
+                    first_name: firstName,
                     items: cart.map(c => ({
                         product_id: c.id,
                         name: c.name,
@@ -516,7 +525,11 @@
                 
                 console.log('Sending order:', orderPayload);
                 
-                const response = await fetch(API_BASE + '/api/orders', {
+                console.log('API_BASE:', API_BASE);
+                const url = API_BASE + '/api/orders';
+                console.log('Fetching URL:', url);
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderPayload)
@@ -529,24 +542,40 @@
                 }
                 
                 const result = await response.json();
+                console.log('Order result:', result);
                 document.getElementById('orderNumber').textContent = '#' + result.order_id;
                 
                 cart = [];
                 updateCartBadge();
+                
+                // Скрываем кнопку перед показом экрана успеха
+                tg.MainButton.hide();
                 showScreen('success');
                 
-                // Закрываем WebApp через 3 секунды
-                setTimeout(() => tg.close(), 3000);
+                // Закрываем WebApp через 2 секунды
+                setTimeout(() => tg.close(), 2000);
             } catch (error) {
                 console.error('Order error:', error);
-                tg.showAlert('Ошибка при оформлении заказа');
-                document.getElementById('bottomBtn').disabled = false;
-                document.getElementById('bottomBtn').textContent = 'Попробовать снова';
+                console.error('Error stack:', error.stack);
+                const errorMsg = 'Ошибка: ' + (error.message || 'Неизвестная ошибка');
+                // Используем showAlert вместо showPopup для старых версий
+                if (tg.showAlert) {
+                    tg.showAlert(errorMsg);
+                } else {
+                    alert(errorMsg);
+                }
+                tg.MainButton.hideProgress();
+                tg.MainButton.enable();
+                const total = calculateTotal();
+                tg.MainButton.setText('Заказать ' + total + ' ₽');
             }
         }
 
         // Инициализация
         loadData();
+        
+        // Обработчик MainButton от Telegram
+        tg.MainButton.onClick(nextStep);
         
         // Обработчик маски телефона
         document.addEventListener('DOMContentLoaded', function() {
