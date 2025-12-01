@@ -1,0 +1,9 @@
+*.log
+*.tmp
+tmp/
+cache/
+.cache/
+.env
+.env.*
+*.local
+.local.
