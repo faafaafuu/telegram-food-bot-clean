@@ -16,7 +16,6 @@
         .auth-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; position: relative; z-index: 10; }
         .auth-card h1 { font-size: 28px; margin-bottom: 10px; color: #1a1a1a; }
         .auth-card p { color: #666; margin-bottom: 30px; }
-        .auth-card input { pointer-events: auto !important; user-select: text !important; }
         .telegram-login { background: #0088cc; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s; justify-content: center; }
         .telegram-login:hover { background: #007ab8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,136,204,0.4); }
         .telegram-login:active { transform: translateY(0); }
@@ -381,14 +380,24 @@
                     showAdminPanel();
                 } else {
                     alert('❌ ' + (data.detail || 'Неверный логин или пароль'));
+                    // Разблокируем кнопку и поля
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Войти';
+                    document.getElementById('adminUsername').disabled = false;
+                    document.getElementById('adminPassword').disabled = false;
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
                 }
             } catch (err) {
                 console.error('Login error:', err);
                 alert('❌ Ошибка входа. Проверьте логин и пароль.');
+                // Разблокируем кнопку и поля
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти';
+                document.getElementById('adminUsername').disabled = false;
+                document.getElementById('adminPassword').disabled = false;
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
             }
         }
 
@@ -602,7 +611,7 @@
                 tbody.innerHTML = categories.map(c => `
                     <tr>
                         <td>${c.id}</td>
-                        <td>${c.name}</td>
+                        <td>${c.title}</td>
                         <td>
                             <button class="btn btn-sm btn-success" onclick="editCategory(${c.id})">✏️</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})">🗑️</button>
@@ -612,7 +621,7 @@
 
                 // Обновляем селектор в форме товара
                 const select = document.getElementById('productCategory');
-                select.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                select.innerHTML = categories.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
             } catch (err) {
                 console.error('Error loading categories:', err);
             }
@@ -838,7 +847,7 @@
                 const category = categories.find(c => c.id === id);
                 document.getElementById('categoryModalTitle').textContent = 'Редактировать категорию';
                 document.getElementById('categoryId').value = category.id;
-                document.getElementById('categoryName').value = category.name;
+                document.getElementById('categoryName').value = category.title;  // используем title
             } else {
                 document.getElementById('categoryModalTitle').textContent = 'Добавить категорию';
                 document.getElementById('categoryForm').reset();
@@ -869,7 +878,7 @@
 
             const id = document.getElementById('categoryId').value;
             const data = {
-                name: document.getElementById('categoryName').value
+                title: document.getElementById('categoryName').value  // используем title вместо name
             };
 
             try {
