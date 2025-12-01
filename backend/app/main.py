@@ -147,11 +147,98 @@ async def delete_cart(user_id: int):
 
 
 @app.post("/api/orders")
-async def create_order(order: schemas.CreateOrder):
-    new = await crud.create_order(order)
-    # return payment URL
-    pay_url = payments.get_payment_url(new.id)
-    return {"order_id": new.id, "payment_url": pay_url}
+async def create_order(request: Request):
+    """Создание заказа из WebApp"""
+    import httpx
+    import os
+    import json as json_lib
+    
+    data = await request.json()
+    user_id = data.get('user_id')
+    items = data.get('items', [])
+    total_price = data.get('total_price', 0)
+    address = data.get('address', '')
+    phone = data.get('phone', '')
+    comment = data.get('comment', '')
+    payment_method = data.get('payment_method', 'cash')
+    delivery_type = data.get('delivery_type', 'delivery')
+    
+    if not user_id:
+        raise HTTPException(400, "user_id required")
+    
+    # Создаем заказ в БД
+    from sqlalchemy import insert
+    from backend.app.db import AsyncSessionLocal, Order
+    
+    items_json = json_lib.dumps(items, ensure_ascii=False)
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            insert(Order).values(
+                user_id=user_id,
+                items_json=items_json,
+                total_price=total_price,
+                address=address,
+                phone=phone,
+                payment_method=payment_method,
+                status='new'
+            ).returning(Order.id)
+        )
+        await session.commit()
+        order_id = result.scalar()
+    
+    # Отправляем уведомление в Telegram
+    bot_token = os.getenv('BOT_TOKEN')
+    if bot_token and user_id:
+        try:
+            delivery_emoji = '🚗' if delivery_type == 'delivery' else '🏃'
+            delivery_text = 'Доставка' if delivery_type == 'delivery' else 'Самовывоз'
+            
+            payment_texts = {
+                'cash': '💵 Наличными',
+                'card': '💳 Картой курьеру',
+                'online': '🌐 Онлайн (ЮКасса)'
+            }
+            payment_text = payment_texts.get(payment_method, payment_method)
+            
+            items_text = '\n'.join([f"• {item['name']} × {item['qty']} = {item['price'] * item['qty']} ₽" for item in items])
+            
+            message = f"""
+🎉 <b>Заказ #{order_id} принят!</b>
+
+<b>Товары:</b>
+{items_text}
+
+💰 <b>Итого: {total_price} ₽</b>
+
+{delivery_emoji} <b>{delivery_text}</b>
+"""
+            
+            if delivery_type == 'delivery':
+                message += f"📍 Адрес: {address}\n"
+            
+            message += f"""📱 Телефон: {phone}
+💳 Оплата: {payment_text}
+"""
+            
+            if comment:
+                message += f"💬 Комментарий: {comment}\n"
+            
+            message += f"\n⏱ Статус: <b>Готовится</b>"
+            
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                    json={
+                        'chat_id': user_id,
+                        'text': message,
+                        'parse_mode': 'HTML'
+                    }
+                )
+        except Exception as e:
+            print(f"Error sending notification: {e}")
+    
+    return {"ok": True, "order_id": order_id}
 
 
 @app.get("/api/orders/{tg_id}")
