@@ -308,7 +308,11 @@
 
         function showCart() {
             if (cart.length === 0) {
-                tg.showAlert('Корзина пуста');
+                if (isTelegram && tg.showAlert) {
+                    tg.showAlert('Корзина пуста');
+                } else {
+                    alert('Корзина пуста');
+                }
                 return;
             }
             showScreen('cart');
@@ -357,8 +361,13 @@
 
         function showScreen(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screen + 'Screen').classList.add('active');
-            currentScreen = screen;
+            const screenElement = document.getElementById(name + 'Screen');
+            if (!screenElement) {
+                console.error('Screen not found:', name);
+                return;
+            }
+            screenElement.classList.add('active');
+            currentScreen = name;
             
             const titles = {
                 menu: 'Jafood',
@@ -369,22 +378,22 @@
                 success: 'Заказ оформлен'
             };
             
-            document.getElementById('headerTitle').textContent = titles[screen] || 'Jafood';
-            document.getElementById('backBtn').style.display = screen !== 'menu' && screen !== 'success' ? 'block' : 'none';
+            document.getElementById('headerTitle').textContent = titles[name] || 'Jafood';
+            document.getElementById('backBtn').style.display = name !== 'menu' && name !== 'success' ? 'block' : 'none';
             
-            if (screen === 'success' || screen === 'menu') {
+            if (name === 'success' || name === 'menu') {
                 if (isTelegram && tg.MainButton) {
                     tg.MainButton.hide();
                 }
                 document.getElementById('bottomBar').style.display = 'none';
-            } else if (screen === 'cart') {
+            } else if (name === 'cart') {
                 const total = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
                 updateBottomBar(`Оформить ${total} ₽`);
-            } else if (screen === 'address') {
+            } else if (name === 'address') {
                 updateBottomBar('Далее');
-            } else if (screen === 'payment') {
+            } else if (name === 'payment') {
                 updateBottomBar('Далее');
-            } else if (screen === 'confirm') {
+            } else if (name === 'confirm') {
                 const total = calculateTotal();
                 updateBottomBar(`Заказать ${total} ₽`);
                 renderConfirmation();
@@ -423,9 +432,13 @@
                 showScreen('address');
             } else if (currentScreen === 'address') {
                 if (!validateAddress()) return;
-                orderData.address = document.getElementById('addressInput').value;
-                orderData.phone = document.getElementById('phoneInput').value;
-                orderData.comment = document.getElementById('commentInput').value;
+                const addressInput = document.getElementById('addressInput');
+                const phoneInput = document.getElementById('phoneInput');
+                const commentInput = document.getElementById('commentInput');
+                
+                orderData.address = addressInput ? addressInput.value : '';
+                orderData.phone = phoneInput ? phoneInput.value : '';
+                orderData.comment = commentInput ? commentInput.value : '';
                 showScreen('payment');
             } else if (currentScreen === 'payment') {
                 showScreen('confirm');
@@ -458,6 +471,8 @@
 
         function validateAddress() {
             const phoneInput = document.getElementById('phoneInput');
+            if (!phoneInput) return false;
+            
             const phone = phoneInput.value.replace(/\D/g, '');
             
             if (!phone || phone.length !== 11) {
