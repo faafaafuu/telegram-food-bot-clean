@@ -14,6 +14,7 @@ def get_main_menu_kb() -> InlineKeyboardMarkup:
     """Главное меню бота"""
     buttons = [
         [InlineKeyboardButton(text="🍕 Открыть меню", web_app=WebAppInfo(url=f"{WEBAPP_URL}/webapp/"))],
+        [InlineKeyboardButton(text="📋 Мои заказы", callback_data="my_orders")],
         [InlineKeyboardButton(text="ℹ️ О ресторане", callback_data="about")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
